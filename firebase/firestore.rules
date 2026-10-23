@@ -1,0 +1,102 @@
+rules_version = '2';
+// Registration queue + NFC check-in. Only a nickname, a ticket number and opaque ids are stored: no personal data.
+// The reception PC's check-in checker uses a service account (server/checkin-firestore.mjs); service accounts
+// bypass these rules, which is why the rules let no browser set checkedInAt or touch tags/.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function counterPath() { return /databases/$(database)/documents/meta/counter; }
+    function ticket(id) { return get(/databases/$(database)/documents/tickets/$(id)); }
+
+    // Staff / booth: a signed-in Google account listed in meta/operators { emails: [...] }.
+    function isOperator() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in get(/databases/$(database)/documents/meta/operators).data.emails;
+    }
+
+    // The pages limit nicknames to 12 characters and strip markup; 24 leaves room for characters
+    // (emoji) that count double here. Pages always display nicknames as text, never as HTML.
+    function validNickname(n) {
+      return n is string && n.size() >= 1 && n.size() <= 24;
+    }
+
+    match /tickets/{id} {
+      allow read: if true;
+
+      // Visitors (anonymous auth): a new 'waiting' ticket whose number is the counter value taken in the
+      // same transaction (the counter after the write is number + 1). owner = the visitor's own sign-in id,
+      // so only that phone can check the ticket in later.
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['number', 'nickname', 'status', 'createdAt', 'updatedAt', 'owner'])
+        && request.resource.data.keys().hasAll(['number', 'nickname', 'status', 'createdAt', 'updatedAt', 'owner'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.status == 'waiting'
+        && validNickname(request.resource.data.nickname)
+        && request.resource.data.number is int
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt == request.resource.data.createdAt
+        && getAfter(counterPath()).data.next == request.resource.data.number + 1
+        && (!exists(counterPath()) || get(counterPath()).data.next == request.resource.data.number);
+
+      // Staff: change the status only (never checkedInAt, which only the reception PC's checker writes).
+      allow update: if isOperator()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.status in ['waiting', 'called', 'playing', 'done', 'noshow']
+        && request.resource.data.updatedAt is int;
+
+      allow delete: if false;
+    }
+
+    // NFC check-in requests, answered by the reception PC (status: pending → accepted / already / rejected).
+    match /checkins/{id} {
+      // A visitor, for their own ticket only, with the two values from the tag's URL.
+      function visitorRequest(d) {
+        return request.auth != null
+          && d.keys().hasOnly(['ticketId', 'picc', 'cmac', 'owner', 'status', 'createdAt'])
+          && d.keys().hasAll(['ticketId', 'picc', 'cmac', 'owner', 'status', 'createdAt'])
+          && d.owner == request.auth.uid
+          && d.status == 'pending'
+          && d.createdAt is int
+          && d.picc is string && d.picc.matches('^[0-9A-Fa-f]{32}$')
+          && d.cmac is string && d.cmac.matches('^[0-9A-Fa-f]{16}$')
+          && d.ticketId is string
+          && ticket(d.ticketId).data.get('owner', null) == request.auth.uid;
+      }
+      // Staff checking a visitor in by hand.
+      function manualRequest(d) {
+        return isOperator()
+          && d.keys().hasOnly(['ticketId', 'manual', 'requestedBy', 'status', 'createdAt'])
+          && d.keys().hasAll(['ticketId', 'manual', 'requestedBy', 'status', 'createdAt'])
+          && d.manual == true
+          && d.requestedBy == request.auth.token.email
+          && d.status == 'pending'
+          && d.createdAt is int
+          && d.ticketId is string;
+      }
+
+      allow read: if request.auth != null && (resource.data.get('owner', null) == request.auth.uid || isOperator());
+      allow create: if visitorRequest(request.resource.data) || manualRequest(request.resource.data);
+      allow update, delete: if false; // answered by the reception PC (service account) only
+    }
+
+    // Last accepted tap counter per NFC tag: the reception PC only.
+    match /tags/{uid} {
+      allow read, write: if false;
+    }
+
+    match /meta/counter {
+      allow read: if true;
+      // starts at 1 (first ticket writes next = 2), then only ever goes up by one
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['next']) && request.resource.data.next == 2;
+      allow update: if request.auth != null && request.resource.data.keys().hasOnly(['next'])
+        && request.resource.data.next == resource.data.next + 1;
+      allow delete: if false;
+    }
+
+    match /meta/operators {
+      allow read: if isOperator();
+      allow write: if false; // edit in the Firebase console
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# line endings: normalize text, keep Windows batch files CRLF, never touch binary model files
+* text=auto
+*.bat text eol=crlf
+*.task binary
+*.wasm binary

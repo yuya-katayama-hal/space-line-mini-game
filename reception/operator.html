@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPACE LINE Operator</title>
+  <link rel="stylesheet" href="operator/operator.css">
+  <script src="node_modules/qrcode-generator/qrcode.js"></script>
+</head>
+<body>
+  <header>
+    <h1>SPACE LINE · 受付 <small>Operator</small></h1>
+    <div class="head-right">
+      <span id="who" class="muted"></span>
+      <button id="signout" class="small hidden">サインアウト / Sign out</button>
+      <div id="conn" class="pill">接続中… / Connecting…</div>
+    </div>
+  </header>
+
+  <div id="auth" class="bar hidden">
+    <span id="auth-msg"></span>
+    <input id="key" type="password" placeholder="Operator key" class="hidden">
+    <button id="key-save" class="hidden">保存 / Save</button>
+    <button id="signin" class="hidden">Googleでサインイン / Sign in with Google</button>
+    <form id="pw-form" class="pw-form hidden">
+      <input id="pw-email" type="email" placeholder="メールアドレス / Email" autocomplete="username">
+      <input id="pw-pass" type="password" placeholder="パスワード / Password" autocomplete="current-password">
+      <button type="submit">サインイン / Sign in</button>
+      <button type="button" id="pw-reset" class="link">パスワードを忘れた / Forgot password</button>
+    </form>
+    <span id="verify" class="hidden">
+      <button id="verify-send">確認メールを送る / Send verification email</button>
+      <button id="verify-done">確認した / I've verified</button>
+    </span>
+  </div>
+  <div id="error" class="bar error hidden" role="alert"></div>
+
+  <main>
+    <section class="panel serving">
+      <h2>呼び出し中 <small>Now serving</small></h2>
+      <div id="serving-empty" class="muted">なし / None</div>
+      <div id="serving" class="hidden">
+        <div class="num">#<span id="s-number"></span></div>
+        <div class="name" id="s-name"></div>
+        <div class="state" id="s-state"></div>
+        <div class="checkin-state" id="s-checkin"></div>
+        <div class="actions">
+          <button data-act="playing">プレイ中 <small>Playing</small></button>
+          <button data-act="done" class="ok">完了 <small>Done</small></button>
+          <button data-act="noshow" class="warn">不在 <small>No-show</small></button>
+          <button data-act="called">再呼び出し <small>Re-call</small></button>
+          <button id="s-manual" class="span2 hidden">手動でチェックイン <small>Check in by hand</small></button>
+        </div>
+      </div>
+      <button id="next" class="primary">次を呼ぶ <small>Call next</small></button>
+    </section>
+
+    <section class="panel">
+      <h2>待っている人 <small>Waiting</small> <span id="count" class="pill">0</span></h2>
+      <table>
+        <thead><tr><th>#</th><th>ニックネーム</th><th>待ち時間</th><th>来場 <small>NFC</small></th><th></th></tr></thead>
+        <tbody id="list"></tbody>
+      </table>
+      <div id="list-empty" class="muted">だれも待っていません / Nobody is waiting</div>
+
+      <div id="missed-wrap" class="hidden">
+        <h3>不在にした人 <small>Marked no-show (this session)</small></h3>
+        <ul id="missed"></ul>
+      </div>
+    </section>
+
+    <section class="panel qr">
+      <h2>登録はこちら <small>Register</small></h2>
+      <div id="qr"></div>
+      <div id="url" class="url"></div>
+      <div id="mode" class="muted"></div>
+
+      <h2 class="records">記録 <small>Records</small></h2>
+      <div id="stats" class="stats muted">—</div>
+      <button id="csv">CSVを保存 <small>Save as CSV</small></button>
+    </section>
+  </main>
+  <script type="module" src="operator/operator.js"></script>
+</body>
+</html>
