@@ -1,0 +1,15 @@
+{
+  "firestore": {
+    "rules": "firebase/firestore.rules"
+  },
+  "hosting": {
+    "public": "hosting",
+    "ignore": ["**/.*", "**/*.md"],
+    "redirects": [
+      { "source": "/", "destination": "/register/", "type": 302 }
+    ],
+    "headers": [
+      { "source": "**/*.@(js|html|css)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  }
+}

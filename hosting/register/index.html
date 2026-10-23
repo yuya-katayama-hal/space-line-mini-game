@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05060f">
+  <title>SPACE LINE 整理券</title>
+  <link rel="stylesheet" href="register.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="kicker">未来創造展 · FUTURE CREATION EXHIBITION</div>
+      <h1>SPACE LINE<span>スペースライン</span></h1>
+      <div class="sub">整理券 / Boarding ticket</div>
+    </header>
+
+    <section id="loading" class="screen">
+      <p class="muted">つないでいます… / Connecting…</p>
+    </section>
+
+    <section id="offline" class="screen hidden">
+      <div class="card">
+        <h2>つながりません</h2>
+        <p class="en">Can't reach the queue right now.</p>
+        <p class="muted">通信のよい場所で、もう一度ためしてください。<br><small>Please check your connection and try again.</small></p>
+        <button id="retry" class="btn">もう一度 / Retry</button>
+      </div>
+    </section>
+
+    <section id="form-screen" class="screen hidden">
+      <form id="form" class="card" novalidate>
+        <label for="nickname">ニックネーム <small>Nickname</small></label>
+        <input id="nickname" name="nickname" autocomplete="nickname" enterkeyhint="done" placeholder="例: そらとぶネコ" required>
+        <div class="hint"><span id="count">0</span>/12 · 本名は入れないでね <small>Please don't use your real name</small></div>
+        <div id="form-error" class="error" role="alert"></div>
+        <button id="submit" class="btn" type="submit">整理券をもらう <small>Get my ticket</small></button>
+      </form>
+      <p class="muted center">ニックネームだけで登録できます。<br><small>Only a nickname is needed. No personal data is collected.</small></p>
+    </section>
+
+    <section id="ticket-screen" class="screen hidden">
+      <div id="ticket" class="ticket">
+        <div class="t-label">整理番号 <small>Ticket</small></div>
+        <div class="t-number">#<span id="t-number"></span></div>
+        <div class="t-name"><span id="t-name"></span> さん</div>
+        <div id="t-checkin" class="t-checkin hidden">来場済み ✔ <small>Checked in</small></div>
+      </div>
+
+      <div id="status" class="card status" aria-live="polite">
+        <div id="st-waiting" class="st hidden">
+          <div class="big">あと <b id="ahead">0</b> 人 <small><span id="ahead-en">0</span> ahead of you</small></div>
+          <div class="row"><span>いま呼び出し中 <small>Now serving</small></span><b id="serving">—</b></div>
+          <div class="row"><span>目安 <small>Estimated wait</small></span><b>約 <span id="eta">0</span> 分 <small>min</small></b></div>
+          <p class="muted">時間は目安です。近くなったら、この画面で確認してね。<br><small>The wait is an estimate. Keep this page open, or check back later.</small></p>
+        </div>
+        <div id="st-called" class="st called hidden">
+          <div class="big">順番です!</div>
+          <p>ブースへどうぞ<br><small>It's your turn. Please come to the booth.</small></p>
+        </div>
+        <div id="st-playing" class="st hidden">
+          <div class="big">体験中</div>
+          <p>いってらっしゃい! <small>Enjoy your voyage!</small></p>
+        </div>
+        <div id="st-done" class="st hidden">
+          <div class="big">ありがとう!</div>
+          <p>ご参加ありがとうございました。<br><small>Thanks for joining the voyage.</small></p>
+        </div>
+        <div id="st-noshow" class="st hidden">
+          <div class="big">呼び出しました</div>
+          <p>お呼びしましたが、いらっしゃいませんでした。ブースのスタッフに声をかけてください。<br><small>We called your number but missed you. Please talk to the booth staff.</small></p>
+        </div>
+        <div id="st-missing" class="st hidden">
+          <div class="big">見つかりません</div>
+          <p>この整理券は見つかりませんでした。<br><small>This ticket could not be found.</small></p>
+        </div>
+      </div>
+
+      <p id="checkin-hint" class="checkin-hint hidden">ブースに着いたら、NFCタグにスマホをタッチしてチェックインしてね。<br><small>At the booth, tap your phone on the NFC tag to check in.</small></p>
+      <div id="live" class="muted center"></div>
+      <button id="again" class="btn ghost">新しく登録 <small>New registration</small></button>
+    </section>
+
+    <!-- opened by tapping the NFC tag at the booth: the tag's URL carries ?picc=…&cmac=… -->
+    <section id="checkin-screen" class="screen hidden">
+      <div id="ci-card" class="card status checkin">
+        <div class="t-label">チェックイン <small>Check-in</small></div>
+        <div id="ci-title" class="big"></div>
+        <p id="ci-text"></p>
+        <button id="ci-ticket" class="btn hidden">整理券を見る <small>View my ticket</small></button>
+        <button id="ci-register" class="btn hidden">整理券をもらう <small>Get a ticket</small></button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="register.js"></script>
+</body>
+</html>
