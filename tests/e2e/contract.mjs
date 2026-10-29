@@ -1,9 +1,9 @@
 // Runs the queue contract test page (/tools/queue-test.html) against the dev environment, in three setups:
 // open server, operator key not entered, operator key entered. NFC checks use the all-zero test keys.
-import { checker, projectFor, startServer, startBrowser, testSecrets, tmpDir } from '../lib.mjs';
+import { checker, startServer, startBrowser, testSecrets, tmpDir } from '../lib.mjs';
 
 const t = checker('queue contract test (dev)');
-const root = projectFor('dev');
+
 const secrets = testSecrets();
 const data = tmpDir('contract'); // shared across the setups, so the second and third see an already-used test tap
 for (const [label, env, key] of [
@@ -11,7 +11,7 @@ for (const [label, env, key] of [
   ['OPERATOR_KEY, key not entered', { OPERATOR_KEY: 's3cret' }, null],
   ['OPERATOR_KEY, key entered', { OPERATOR_KEY: 's3cret' }, 's3cret'],
 ]) {
-  const srv = await startServer({ root, port: 8204, env: { DATA_DIR: data, SPACELINE_SECRETS: secrets, ...env } });
+  const srv = await startServer({ environment: 'dev', port: 8204, env: { DATA_DIR: data, SPACELINE_SECRETS: secrets, ...env } });
   const br = await startBrowser({ port: 9204 });
   const page = await br.newPage();
   await page.go(`${srv.url}/tools/queue-test.html`);

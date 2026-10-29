@@ -1,5 +1,6 @@
 // Operator page: call the next visitor, mark done / no-show, show the registration QR code.
-import { connectQueue } from '../js/queue/index.js';
+import qrcode from 'qrcode-generator';
+import { connectQueue } from '../../shared/queue/index.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_STORE = 'voyage.operatorKey';

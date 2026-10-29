@@ -1,7 +1,7 @@
 // Queue contract test: run it after adding or changing a backend (see docs/queue-backends.md).
 // Open http://localhost:8000/tools/queue-test.html (served by server/server.mjs on the reception PC). Results also land in window.result.
-import { connectQueue, STATUSES, QueueError } from '../js/queue/index.js';
-import { ENVIRONMENT, ENV } from '../js/queue/config.js';
+import { connectQueue, STATUSES, QueueError } from '../../shared/queue/index.js';
+import { ENVIRONMENT, ENV } from '../../shared/queue/config.js';
 
 const $ = (id) => document.getElementById(id);
 const backend = ENV ? ENV.backend : '(unknown environment)';

@@ -87,8 +87,18 @@ if (SDM_KEYS && !(hex32(SDM_KEYS.metaReadKey) && hex32(SDM_KEYS.fileReadKey))) {
   SDM_KEYS = null;
 }
 
+// ---------- the built pages and their environment (npm run build / build:dev) ----------
+const DIST = path.resolve(ROOT, process.env.SPACELINE_DIST || 'dist');
+let build;
+try { build = JSON.parse(fs.readFileSync(path.join(DIST, 'build.json'), 'utf8')); } catch {
+  console.error(`No build in ${DIST}. Run "npm run build" first (or "npm run build:dev" for the dev environment).`);
+  process.exit(1);
+}
+const { ENVIRONMENTS } = await import(pathToFileURL(path.join(ROOT, 'shared/queue/config.js')).href);
+const ENVIRONMENT = build.environment;
+const ENV = ENVIRONMENTS[ENVIRONMENT];
+
 // In the Firebase (product) environment, phones send check-in requests to Firestore and this PC answers them.
-const { ENVIRONMENT, ENV } = await import(pathToFileURL(path.join(ROOT, 'hosting/js/queue/config.js')).href);
 let checkinStatus = SDM_KEYS ? 'on (local queue API)' : 'off: no sdm-keys.json in the secrets folder';
 if (ENV && ENV.backend === 'firebase') {
   const sa = readSecret('firebase-service-account.json');
@@ -298,17 +308,12 @@ async function api(req, res, rel) {
 }
 
 // ---------- static files ----------
-// URL prefix → folder. Only these are served (first match wins, so keep '/' last). The URLs are the same as
-// on Firebase Hosting for the hosted part, so the pages work unchanged in both places.
+// URL prefix → folder of the build. Only these are served (first match wins, so keep '/' last). The phone page
+// has the same URL here as on Firebase Hosting, so it works unchanged in both places.
 const MOUNTS = [
-  ['/register/', 'hosting/register'],                                       // phone registration page (published)
-  ['/js/queue/', 'hosting/js/queue'],                                       // queue client (published; also used here)
-  ['/node_modules/three/', 'node_modules/three'],                           // libraries the booth loads
-  ['/node_modules/@mediapipe/tasks-vision/', 'node_modules/@mediapipe/tasks-vision'],
-  ['/node_modules/qrcode-generator/', 'node_modules/qrcode-generator'],
-  ['/tools/', 'tools'],                                                     // developer test pages
-  ['/', 'reception'],                                                       // booth (/) and operator page
-].map(([prefix, dir]) => [prefix, path.join(ROOT, dir)]);
+  ['/register/', 'hosting/register'],   // phone registration page (the same files Firebase Hosting publishes)
+  ['/', 'reception'],                   // booth (/), operator page, contract test page (/tools/), MediaPipe, model
+].map(([prefix, dir]) => [prefix, path.join(DIST, dir)]);
 
 function serveStatic(req, res, rel) {
   if (MOUNTS.some(([prefix]) => prefix === rel + '/')) { res.writeHead(301, { Location: rel + '/' }).end(); return; } // /register → /register/

@@ -1,11 +1,13 @@
 // Queue settings. See docs/queue-backends.md for the interface every backend implements and how to add one.
 
-// Which environment this copy of the app runs in. Set it here only: no URL or page can change it.
-//   'product'  the exhibition (default)
-//   'dev'      testing on one PC / the venue Wi-Fi with server/server.mjs (npm start, start-lan.bat)
-export const ENVIRONMENT = 'product';
+// Which environment this build runs in. It is fixed when the pages are built (scripts/build.mjs):
+//   npm run build      → 'product'  the exhibition (default)
+//   npm run build:dev  → 'dev'      testing on one PC / the venue Wi-Fi with the reception server's local queue
+// No URL or page can change it. (Outside a build, e.g. in the server, it reads as 'product'.)
+/* global __SPACELINE_ENV__ */
+export const ENVIRONMENT = typeof __SPACELINE_ENV__ !== 'undefined' ? __SPACELINE_ENV__ : 'product';
 
-// Each environment names its backend ('firebase' | 'local' | any adapter in js/queue/index.js) and that
+// Each environment names its backend ('firebase' | 'local' | any adapter in shared/queue/index.js) and that
 // backend's settings. registerUrl: the phone page the QR code points to (null = the backend's default:
 // local → the server's LAN/localhost address, Firebase → https://<projectId>.web.app/register/).
 export const ENVIRONMENTS = {

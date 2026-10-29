@@ -24,7 +24,7 @@ export const ADAPTERS = {
 
 // opts: { timeoutMs = 4000, baseUrl (local backend: server address, default this page's origin) }
 export async function connectQueue(opts = {}) {
-  if (!ENV) throw new QueueError('invalid', `unknown environment "${ENVIRONMENT}" in js/queue/config.js`);
+  if (!ENV) throw new QueueError('invalid', `unknown environment "${ENVIRONMENT}" in shared/queue/config.js`);
   const backend = ENV.backend;
   if (!ADAPTERS[backend]) throw new QueueError('invalid', `environment "${ENVIRONMENT}" uses unknown backend "${backend}" (known: ${Object.keys(ADAPTERS).join(', ')})`);
   const timeoutMs = opts.timeoutMs ?? 4000;

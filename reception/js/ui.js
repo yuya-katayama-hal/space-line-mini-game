@@ -1,6 +1,7 @@
 // DOM overlay: hand cursor, floating tags, info card, era header, attract screen, warp transition,
 // flow captions / countdown / closing message, and the queue panel (QR + next visitor).
 import * as THREE from 'three';
+import qrcode from 'qrcode-generator';
 import { FLOW } from './content.js';
 
 const $ = (id) => document.getElementById(id);
@@ -134,8 +135,8 @@ export class UI {
   // state: { serving, waiting } from the queue (or null); url: the phone registration page
   setQueue(state, url) {
     const box = $('attract-queue');
-    if (url && url !== this.qrUrl && window.qrcode) {
-      const q = window.qrcode(0, 'M');
+    if (url && url !== this.qrUrl) {
+      const q = qrcode(0, 'M');
       q.addData(url);
       q.make();
       $('qr').innerHTML = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true });

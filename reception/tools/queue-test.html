@@ -21,7 +21,7 @@
 <body>
   <h1>Queue contract test</h1>
   <div class="muted">Checks that a queue backend implements the interface in <code>docs/queue-backends.md</code>.
-    Environment: <b id="backend"></b> (set by <code>ENVIRONMENT</code> in <code>js/queue/config.js</code>)</div>
+    Environment: <b id="backend"></b> (fixed by the build: <code>npm run build:dev</code> for dev)</div>
   <div id="warn" class="hidden">
     This backend is not the local test server. The test writes ten tickets named <b>テスト</b> into its queue and marks
     them done at the end; it never calls a real visitor. Staff sign-in may be needed.

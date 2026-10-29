@@ -1,8 +1,8 @@
 // Phone registration page: nickname → ticket number → live status until it's your turn.
 // Tapping the NFC tag at the booth opens this page with ?picc=…&cmac=… and checks the ticket in.
-import { connectQueue, aheadOf } from '../js/queue/index.js';
-import { cleanNickname, NICKNAME_MAX } from '../js/queue/nickname.js';
-import { TURN_MINUTES } from '../js/queue/config.js';
+import { connectQueue, aheadOf } from '../../shared/queue/index.js';
+import { cleanNickname, NICKNAME_MAX } from '../../shared/queue/nickname.js';
+import { TURN_MINUTES } from '../../shared/queue/config.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY = 'voyage.ticketId';

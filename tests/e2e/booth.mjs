@@ -1,7 +1,7 @@
 // The booth: a full turn in the product environment (launch by swipe → space → Moon gate → fly home → landing →
 // finale → attract), launch-gesture rules, Mars reachable, and in the dev environment the queue flow
 // (called + checked-in visitor greeted, ticket playing → done after the turn, next visitor shown).
-import { checker, projectFor, startServer, startBrowser, sleep } from '../lib.mjs';
+import { checker, startServer, startBrowser, sleep } from '../lib.mjs';
 
 const t = checker('booth');
 const phase = (p) => p.ev(`voyage.state.phase + (voyage.state.transitioning ? '*' : '')`);
@@ -56,7 +56,7 @@ async function swipe(p, fromY, toY) { for (let y = fromY; y >= toY; y -= 60) { a
 
 // ---------- dev: queue + booth ----------
 {
-  const srv = await startServer({ root: projectFor('dev'), port: 8208 });
+  const srv = await startServer({ environment: 'dev', port: 8208 });
   const a = await srv.api('tickets', { nickname: 'はると' });
   const bt = await srv.api('tickets', { nickname: 'Mia' });
   await srv.api('call-next', {});

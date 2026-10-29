@@ -1,9 +1,9 @@
 // Phone registration page + operator page together (dev environment, local backend): register, live position,
 // call next / done / no-show, "your turn", playing, done.
-import { checker, projectFor, startServer, startBrowser, sleep } from '../lib.mjs';
+import { checker, startServer, startBrowser, sleep } from '../lib.mjs';
 
 const t = checker('phone page + operator page (dev)');
-const srv = await startServer({ root: projectFor('dev'), port: 8203 });
+const srv = await startServer({ environment: 'dev', port: 8203 });
 const br = await startBrowser({ port: 9203 });
 const base = srv.url;
 

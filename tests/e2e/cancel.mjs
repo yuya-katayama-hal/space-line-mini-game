@@ -1,9 +1,9 @@
 // Cancelling through the real pages (dev environment): the visitor cancels on the phone, 新しく登録 cancels the old
 // ticket, staff cancel from the operator page, records count cancellations.
-import { checker, projectFor, startServer, startBrowser, registerOnPhone, sleep } from '../lib.mjs';
+import { checker, startServer, startBrowser, registerOnPhone, sleep } from '../lib.mjs';
 
 const t = checker('cancel through the pages (dev)');
-const srv = await startServer({ root: projectFor('dev'), port: 8206 });
+const srv = await startServer({ environment: 'dev', port: 8206 });
 const br = await startBrowser({ port: 9206 });
 const base = srv.url;
 

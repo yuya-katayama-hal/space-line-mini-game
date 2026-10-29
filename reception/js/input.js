@@ -1,7 +1,7 @@
 // Visitor input. Each source (webcam hand, mouse) keeps its own state; `Input` picks the active one
 // and publishes it on a single `Pointer`. The rest of the app only reads `input.pointer`:
 //   x, y, present, pressed, fist, backProgress   and events: press | release | zoom | back | swipeup
-import { FilesetResolver, HandLandmarker } from '../node_modules/@mediapipe/tasks-vision/vision_bundle.mjs';
+import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
 // ---- Tuning knobs (adjust these on site) ----
 export const CONFIG = {
@@ -97,7 +97,7 @@ export class HandInput extends Source {
     }
 
     this.status('手の認識を準備中… / Loading hand tracking…');
-    const fileset = await FilesetResolver.forVisionTasks('./node_modules/@mediapipe/tasks-vision/wasm');
+    const fileset = await FilesetResolver.forVisionTasks('./mediapipe/wasm'); // copied there by the build
     const options = (delegate) => ({
       baseOptions: { modelAssetPath: './models/hand_landmarker.task', delegate },
       runningMode: 'VIDEO',

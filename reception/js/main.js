@@ -67,9 +67,9 @@ input.start().catch((err) => {
 // ---------- registration queue (optional: the booth runs walk-in only if it can't connect) ----------
 // Staff sign-in for the booth (it marks tickets playing / done) depends on the backend: with a shared key
 // (local server with OPERATOR_KEY) open the booth as /?key=<the key>; with accounts (Firebase) sign in once on
-// operator.html in the same browser profile. The backend comes from ENVIRONMENT in js/queue/config.js only.
+// operator.html in the same browser profile. The backend comes from the build's ENVIRONMENT only (shared/queue/config.js).
 let queue = null, queueState = null;
-import('./queue/index.js')
+import('../../shared/queue/index.js')
   .then((m) => m.connectQueue())
   .then(async (q) => {
     const key = new URLSearchParams(location.search).get('key');

@@ -1,6 +1,6 @@
 // Shared helpers for the integration and browser tests: start the server, drive headless Chrome over the
 // DevTools protocol, prepare the dev environment, report PASS / FAIL.
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -37,31 +37,25 @@ export function testSecrets() {
   return dir;
 }
 
-// Where the dev environment is served from (ENVIRONMENT = 'dev' → the local queue backend).
-// Pages bake the environment in, so dev needs its own copy of the project with node_modules linked.
-const devRoots = new Map();
-export function projectFor(environment) {
-  if (environment !== 'dev') return ROOT;
-  if (devRoots.has(environment)) return devRoots.get(environment);
-  const dir = tmpDir('dev');
-  copyDir(ROOT, dir, (rel) => !/^(node_modules|data|\.git|\.firebase|dist)(\/|$)/.test(rel));
-  fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'junction');
-  const cfg = path.join(dir, 'hosting', 'js', 'queue', 'config.js');
-  fs.writeFileSync(cfg, fs.readFileSync(cfg, 'utf8').replace(/^export const ENVIRONMENT = '[a-z]+';/m, "export const ENVIRONMENT = 'dev';"));
-  devRoots.set(environment, dir);
-  process.on('exit', () => { try { fs.rmdirSync(path.join(dir, 'node_modules')); } catch {} }); // unlink the junction only
+// The built pages a test serves (SPACELINE_DIST): the regular build ('product', built if missing), or a 'dev'
+// build in a temporary folder. Pages bake the environment in at build time.
+const builds = new Map();
+export function distFor(environment = 'product') {
+  if (builds.has(environment)) return builds.get(environment);
+  let dir;
+  if (environment === 'product') {
+    dir = path.join(ROOT, 'dist');
+    if (!fs.existsSync(path.join(dir, 'build.json'))) buildPages('product', dir, false);
+    else if (JSON.parse(fs.readFileSync(path.join(dir, 'build.json'), 'utf8')).environment !== 'product') throw new Error('dist/ holds a dev build; run "npm run build" first');
+  } else {
+    dir = tmpDir(`dist-${environment}`);
+    buildPages(environment, dir, true);
+  }
+  builds.set(environment, dir);
   return dir;
 }
-
-// Done by hand: fs.cpSync / rmSync({recursive}) crash Node 24 on Windows when the path has non-ASCII characters.
-function copyDir(from, to, keep, rel = '') {
-  fs.mkdirSync(to, { recursive: true });
-  for (const e of fs.readdirSync(from, { withFileTypes: true })) {
-    const r = rel ? `${rel}/${e.name}` : e.name;
-    if (!keep(r)) continue;
-    if (e.isDirectory()) copyDir(path.join(from, e.name), path.join(to, e.name), keep, r);
-    else if (e.isFile()) fs.copyFileSync(path.join(from, e.name), path.join(to, e.name));
-  }
+function buildPages(environment, out, pagesOnly) {
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts/build.mjs'), '--env', environment, '--out', out, ...(pagesOnly ? ['--pages-only'] : [])], { cwd: ROOT, stdio: 'ignore' });
 }
 
 export function serverEntry(root) {
@@ -69,11 +63,12 @@ export function serverEntry(root) {
   return fs.existsSync(built) ? built : path.join(root, 'server', 'server.mjs');
 }
 
-// Starts the server and waits until it answers. env: extra environment (DATA_DIR defaults to a fresh temp dir).
-export async function startServer({ root = ROOT, port, env = {} }) {
-  const proc = spawn(process.execPath, [serverEntry(root)], {
-    cwd: root,
-    env: { ...process.env, PORT: String(port), DATA_DIR: tmpDir('data'), SPACELINE_SECRETS: tmpDir('nosecrets'), ...env },
+// Starts the server for an environment's build and waits until it answers.
+// env: extra environment variables (DATA_DIR defaults to a fresh temp dir).
+export async function startServer({ environment = 'product', port, env = {} }) {
+  const proc = spawn(process.execPath, [serverEntry(ROOT)], {
+    cwd: ROOT,
+    env: { ...process.env, PORT: String(port), DATA_DIR: tmpDir('data'), SPACELINE_SECRETS: tmpDir('nosecrets'), SPACELINE_DIST: distFor(environment), ...env },
   });
   let log = '';
   proc.stdout.on('data', (d) => { log += d; });

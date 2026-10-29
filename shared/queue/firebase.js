@@ -8,7 +8,6 @@
 import { cleanNickname } from './nickname.js';
 import { sortQueue, QueueError, STATUSES } from './common.js';
 
-const SDK = 'https://www.gstatic.com/firebasejs/12.19.0';
 
 // Firebase error names → generic queue error codes (see common.js)
 const FIREBASE_CODES = {
@@ -26,9 +25,9 @@ export async function connect(opts) {
   const { firebase: firebaseConfig, registerUrl } = opts.settings;
   const staffProviders = (opts.settings.staffSignIn || ['google']).filter((p) => p === 'google' || p === 'password');
   const [{ initializeApp, getApps }, fs, au] = await Promise.all([
-    import(`${SDK}/firebase-app.js`),
-    import(`${SDK}/firebase-firestore.js`),
-    import(`${SDK}/firebase-auth.js`),
+    import('firebase/app'),
+    import('firebase/firestore'),
+    import('firebase/auth'),
   ]);
   const app = getApps()[0] || initializeApp(firebaseConfig);
   const db = fs.getFirestore(app);

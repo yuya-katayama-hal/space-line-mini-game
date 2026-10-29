@@ -2,11 +2,11 @@
 // browser without a ticket, booth binds the called visitor only after check-in, operator ✔ / records / CSV.
 import fs from 'node:fs';
 import path from 'node:path';
-import { checker, projectFor, startServer, startBrowser, testSecrets, tmpDir, registerOnPhone, sleep } from '../lib.mjs';
+import { checker, startServer, startBrowser, testSecrets, tmpDir, registerOnPhone, sleep } from '../lib.mjs';
 
 const t = checker('NFC check-in through the pages (dev)');
 const VECTOR = 'picc=EF963FF7828658A599F3041510671E88&cmac=94EED9EE65337086'; // NXP test tap (zero keys), counter 61
-const srv = await startServer({ root: projectFor('dev'), port: 8205, env: { SPACELINE_SECRETS: testSecrets() } });
+const srv = await startServer({ environment: 'dev', port: 8205, env: { SPACELINE_SECRETS: testSecrets() } });
 const br = await startBrowser({ port: 9205 });
 const base = srv.url;
 const title = (p) => p.text('ci-title');
@@ -27,7 +27,7 @@ await phone.waitFor(`document.getElementById('ci-title').textContent && document
 t.ok((await title(phone)) === 'このタッチは使えません', 'phone: reusing the same tap URL → refused (replayed)', await title(phone));
 
 const stranger = await br.newPage({ mobileWidth: 390 });
-await stranger.go(`${base}/js/queue/config.js`); // same browser profile as the phone: drop its saved ticket first
+await stranger.go(`${base}/no-such-page`); // same browser profile as the phone: drop its saved ticket first (any page of this origin)
 await stranger.ev('localStorage.clear()');
 await stranger.go(`${base}/register/?picc=00000000000000000000000000000000&cmac=0000000000000000`);
 await stranger.waitFor(`!!document.getElementById('ci-title').textContent`);
