@@ -1,7 +1,7 @@
 // Queue store: MariaDB (or MySQL). Select it with QUEUE_STORE=mariadb and
 // MARIADB_URL=mariadb://user:password@host:3306/database. Tables are created (and upgraded) on first start.
 // Needs the optional npm package "mariadb" (loaded only when this store is used).
-import { decideCheckIn } from './checkin.mjs';
+import { decideCheckIn, decideCancel } from './checkin.mjs';
 
 const ACTIVE = "('waiting','called','playing')";
 
@@ -110,6 +110,16 @@ export async function openStore({ url }) {
         return d;
       });
       return { status: out.status, reason: out.reason, ticket: await get(id) };
+    },
+    async cancel({ id, ownerHash = null, now }) {
+      // the ticket row stays locked from the check to the update, so a call / cancel race can't both win
+      const d = await tx(async (conn) => {
+        const t = toTicket((await conn.query('SELECT * FROM tickets WHERE id = ? FOR UPDATE', [id]))[0]);
+        const r = decideCancel({ ticket: t, ownerMatches: !!t && !!t.ownerHash && t.ownerHash === ownerHash });
+        if (r.status === 'cancelled') await conn.query("UPDATE tickets SET status = 'cancelled', updated_at = ? WHERE id = ?", [now, id]);
+        return r;
+      });
+      return { status: d.status, reason: d.reason, ticket: await get(id) };
     },
     async close() { await pool.end(); },
   };

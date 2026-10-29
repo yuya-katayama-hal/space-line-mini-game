@@ -108,3 +108,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(95, 242, 2
 .checkin.ok .big { color: #8dffc2; }
 .checkin.ng .big { color: var(--error); }
 .checkin .btn { margin-top: 16px; }
+
+/* cancel */
+.btn.danger { border-color: var(--error); color: var(--error); }
+.btn.danger small { color: var(--error); opacity: 0.8; }

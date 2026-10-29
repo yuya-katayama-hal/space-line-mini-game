@@ -18,6 +18,7 @@ There are two things to make
 * Environments: `product` (default, Firebase) and `dev` (local server), chosen only in hosting/js/queue/config.js, never from a URL
 * Folders split by where they run: `hosting/` is the only thing published to Firebase; `reception/` and `server/` stay on the reception PC
 * Firebase account: prepared by the project owner; project `space-line-54818` is live
+* Cancelling: both the visitor (own ticket, before their turn) and staff can cancel; status `cancelled`, counted apart from no-shows
 * Proof of arrival: NFC check-in with NTAG 424 DNA (copy-proof tags), checked on the reception PC (keys never leave it;
   Firebase stays on the free plan). A tap is accepted only from the phone that registered and only if its counter is
   higher than the last accepted one. Used for records / stats and to stop impersonation (the booth binds a called

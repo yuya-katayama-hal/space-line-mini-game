@@ -42,7 +42,14 @@ service cloud.firestore {
       // Staff: change the status only (never checkedInAt, which only the reception PC's checker writes).
       allow update: if isOperator()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-        && request.resource.data.status in ['waiting', 'called', 'playing', 'done', 'noshow']
+        && request.resource.data.status in ['waiting', 'called', 'playing', 'done', 'noshow', 'cancelled']
+        && request.resource.data.updatedAt is int
+      // The visitor who created it: cancel it, and only while it is still waiting or called.
+        || request.auth != null
+        && resource.data.get('owner', null) == request.auth.uid
+        && resource.data.status in ['waiting', 'called']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
         && request.resource.data.updatedAt is int;
 
       allow delete: if false;

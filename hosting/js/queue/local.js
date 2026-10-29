@@ -111,6 +111,8 @@ export async function connect(opts = {}) {
     },
     checkInManual(id) { return call('POST', `/api/tickets/${encodeURIComponent(id)}/checkin`, { manual: true }); },
     listTickets() { return call('GET', '/api/tickets'); },
+    // a visitor withdraws their own ticket (staff use setStatus(id, 'cancelled'))
+    cancelTicket(id, { ownerToken } = {}) { return call('POST', `/api/tickets/${encodeURIComponent(id)}/cancel`, { ownerToken }); },
     close() {
       closed = true;
       if (es) es.close();

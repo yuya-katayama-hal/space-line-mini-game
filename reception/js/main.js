@@ -162,7 +162,11 @@ function bindCalledTicket() {
 }
 
 function endTurn() {
-  if (turn.ticket && queue) queueCall(queue.setStatus(turn.ticket.id, 'done'));
+  // mark the visitor's ticket done, unless staff changed it meanwhile (e.g. cancelled it)
+  if (turn.ticket && queue) {
+    const q = queue, id = turn.ticket.id;
+    queueCall(q.getTicket(id).then((t) => (t && t.status === 'playing' ? q.setStatus(id, 'done') : null)));
+  }
   turn.active = false;
   turn.ticket = null;
   turn.token++; // cancels any sequence still running

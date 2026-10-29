@@ -34,7 +34,7 @@ const MAX_BODY = 4096;
 const MAX_ACTIVE = 500;              // waiting + called + playing tickets
 const CREATE_LIMIT = { count: 10, perMs: 60_000 }; // tickets per IP per minute
 const CHECKIN_LIMIT = { count: 30, perMs: 60_000 }; // check-in attempts per IP per minute
-const STATUSES = ['waiting', 'called', 'playing', 'done', 'noshow'];
+const STATUSES = ['waiting', 'called', 'playing', 'done', 'noshow', 'cancelled'];
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -275,6 +275,15 @@ async function api(req, res, rel) {
     }
     if (r.status !== 'rejected') broadcast([r.ticket]);
     return send(res, 200, { status: r.status, reason: r.reason || null, ticket: r.status === 'rejected' ? null : pub(r.ticket) });
+  }
+  mm = rel.match(/^\/api\/tickets\/([\w-]{1,40})\/cancel$/);
+  if (mm && m === 'POST') {
+    // { ownerToken }: a visitor withdrawing their own ticket (staff cancel with /status)
+    if (!allowCheckin(req.socket.remoteAddress)) return send(res, 429, { error: 'too many attempts, try again in a minute' });
+    const body = await readJson(req);
+    const r = await store.cancel({ id: mm[1], ownerHash: sha256(body.ownerToken || ''), now: Date.now() });
+    if (r.status === 'cancelled') broadcast([r.ticket]);
+    return send(res, 200, { status: r.status, reason: r.reason || null, ticket: r.status === 'cancelled' ? pub(r.ticket) : null });
   }
   mm = rel.match(/^\/api\/tickets\/([\w-]{1,40})\/status$/);
   if (mm && m === 'POST') {
