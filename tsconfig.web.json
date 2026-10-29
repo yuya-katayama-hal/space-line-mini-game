@@ -1,0 +1,13 @@
+{
+  // Code the browser runs, bundled by Vite: the booth and operator page (reception/), the phone page (hosting/)
+  // and the queue client they share (shared/).
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["shared/**/*", "reception/**/*", "hosting/**/*"],
+  "exclude": ["reception/public"]
+}

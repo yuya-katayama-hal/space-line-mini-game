@@ -9,7 +9,7 @@
    - `picc`: 暗号化されたタグIDとタッチ回数
    - `cmac`: 署名
 2. 来場者が、整理券を受け取ったスマホでタッチします。iPhoneでもAndroidでもアプリなしで登録ページが開き、チェックインの依頼が送られます。
-3. **受付PC**(`server/server.mjs`)が、受付PCにだけある鍵で次を確かめます。受付の判定ルールは `server/checkin.mjs` にあります。
+3. **受付PC**(`server/server.ts`)が、受付PCにだけある鍵で次を確かめます。受付の判定ルールは `server/checkin.ts` にあります。
    - 署名が正しいこと(偽造・改ざんの防止)
    - 整理券を作ったスマホからの依頼であること(他人の整理券は使えない)
    - 整理券が終了していないこと
@@ -35,7 +35,7 @@
 
 受付PCで実行します:
 ```
-node tools/new-keys.mjs
+node tools/new-keys.ts
 ```
 `C:\Users\<ユーザー名>\spaceline-secrets\sdm-keys.json` に2つの鍵が保存され、画面にも表示されます。
 - `metaReadKey`:タグの **SDM Meta Read Key**(タグIDと回数の暗号化に使う)
@@ -64,7 +64,7 @@ TagWriter(またはTagXplorer)で、次の内容を設定します。画面の�
 1. スマホでタグにタッチし、開いたページのURLをコピーします。この時点では、そのタッチでチェックインはされません。
 2. 受付PCで実行します:
    ```
-   node tools/check-tap.mjs <picc の値> <cmac の値>
+   node tools/check-tap.ts <picc の値> <cmac の値>
    ```
    (URLを丸ごと `"…"` で渡しても動きますが、Windowsでは `&` で切れることがあるため、2つの値を並べる形が確実です。)
 3. `OK  tag UID …, tap counter …` と出れば成功です。`NG` のときは、理由とヒントが表示されます。
@@ -86,13 +86,13 @@ TagWriter(またはTagXplorer)で、次の内容を設定します。画面の�
 鍵フォルダの中身:
 ```
 C:\Users\<ユーザー名>\spaceline-secrets\
-  sdm-keys.json                   タグの鍵(tools/new-keys.mjs で作成)
+  sdm-keys.json                   タグの鍵(tools/new-keys.ts で作成)
   firebase-service-account.json   本番の確認用(手順4)
 ```
 
 ## 運用
 
-- **受付PCの `server.mjs` を動かしたままにします。** `start.bat` は `server/keep-running.bat` の中でサーバーを起動するので、落ちても3秒後に自動で立ち上がり直します。最小化されたサーバーの窓を閉じると止まるので、閉じないでください。止まっている間の依頼は確認待ちでたまり、再開すると古い順に処理されます。
+- **受付PCの `server.ts` を動かしたままにします。** `start.bat` は `server/keep-running.bat` の中でサーバーを起動するので、落ちても3秒後に自動で立ち上がり直します。最小化されたサーバーの窓を閉じると止まるので、閉じないでください。止まっている間の依頼は確認待ちでたまり、再開すると古い順に処理されます。
 - **うまくいかない来場者には、受付画面の「手動」ボタン(呼び出し中の人は「手動でチェックイン」)を使います。** 本番でも受付PCの確認係を通るので、記録に残ります。
 - よくあるケースは、別のブラウザで登録した人です(LINEの中のブラウザで登録して、タッチでSafariが開いた、など)。登録ページが「このブラウザに整理券がありません」と案内します。登録したブラウザで開き直してもらうか、手動チェックインにします。
 - **記録:** 受付画面の「記録」に登録数・来場数・体験数が出ます。「CSVを保存」で一覧(番号、ニックネーム、状態、登録時刻、来場時刻)をダウンロードできます。
@@ -106,15 +106,15 @@ C:\Users\<ユーザー名>\spaceline-secrets\
    ```json
    { "metaReadKey": "00000000000000000000000000000000", "fileReadKey": "00000000000000000000000000000000" }
    ```
-2. `hosting/js/queue/config.js` を `ENVIRONMENT = 'dev'` にし、`SPACELINE_SECRETS=<そのフォルダ>` で `npm start` します。
+2. `npm run build:dev` でdev環境のページを作り、`SPACELINE_SECRETS=<そのフォルダ>` で `npm start` します。終わったら `npm run build` で本番用に戻します。
 3. タッチの代わりにURLを作ります:
    ```
-   node tools/fake-tap.mjs <回数>
+   node tools/fake-tap.ts <回数>
    ```
    出てきたURLを、整理券を取ったブラウザで開くとチェックインできます。同じURLをもう一度開くと「このタッチは使えません」になります。
    - 鍵を知っていれば誰でも正しいタッチを作れる、ということでもあります。本物の鍵を鍵フォルダの外に出さないでください。
 
 テスト:
-- `node tools/sdm-test.mjs`:暗号部分。RFC 4493 と NXP の公開テスト値で確認します。
-- `node tools/checkin-firestore-test.mjs`:本番用の確認係の判定。Firestoreをまねた模型で確認します。
-- `/tools/queue-test.html`:キューとチェックインの契約テスト。dev環境、全部0の鍵で動かします。
+- `npm test`(`tests/unit/`):暗号部分(RFC 4493 と NXP の公開テスト値)、受付の判定ルール、本番用の確認係(Firestoreをまねた模型)を確認します。
+- `npm run test:integration`:本物のサーバーで、同時タッチや使い回しを確認します。
+- `/tools/queue-test.html`:キューとチェックインの契約テスト。dev環境、全部0の鍵で動かします(`npm run test:e2e` でも自動で動きます)。

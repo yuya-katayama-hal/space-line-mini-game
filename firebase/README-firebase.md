@@ -7,18 +7,18 @@
 > If staff get "Missing or insufficient permissions", the signed-in address (shown on the operator page)
 > is missing from the `emails` array in `meta/operators`.
 
-Firebase is the backend of the `product` environment (the default). `ENVIRONMENT = 'dev'` in
-`hosting/js/queue/config.js` switches to the **local queue** in `server/server.mjs` (`npm run start:lan` / `start-lan.bat`).
-Keep `ENVIRONMENT = 'product'` when you deploy, since the hosted page uses the same file.
+Firebase is the backend of the `product` environment (the default, `npm run build`). Pages built with
+`npm run build:dev` use the **local queue** in `server/server.ts` instead (`npm run start:lan` / `start-lan.bat`).
+Deploying always builds `product` first (`predeploy` in `firebase.json`), so a dev build is never published.
 The pages and the booth use the same interface either way (`docs/queue-backends.md`).
 
 ## What runs where
 
 | Part | Where |
 | --- | --- |
-| Phone registration page: the folder `hosting/` (`register/` + `js/queue/`) | Firebase Hosting, `https://<project-id>.web.app/register/` (the QR code points here). Everything in `hosting/` is public, and nothing else is |
+| Phone registration page: `hosting/register/` + the queue client from `shared/queue/`, built into `dist/hosting/` | Firebase Hosting, `https://<project-id>.web.app/register/` (the QR code points here). Everything in `dist/hosting/` is public, and nothing else is |
 | Tickets | Cloud Firestore: `tickets/{id}`, `meta/counter`, `meta/operators` |
-| Booth and operator page: the folder `reception/` | the reception PC only, served by `server/server.mjs`, talking to Firestore directly (the PC is online). Never deployed |
+| Booth and operator page: the folder `reception/` | the reception PC only, built into `dist/reception/` and served by `server/server.ts`, talking to Firestore directly (the PC is online). Never deployed |
 
 Stored per ticket: `number`, `nickname`, `status`, `createdAt`, `updatedAt`, `owner` (an anonymous sign-in id),
 `checkedInAt`. Also `checkins/{id}` (check-in requests and their answers) and `tags/{uid}` (last accepted tap
@@ -28,7 +28,7 @@ Who can do what (`firestore.rules`):
 - Anyone can read tickets (needed for the live "N ahead / now serving" view).
 - Visitors sign in **anonymously** (automatic, invisible) and can only create a `waiting` ticket whose number
   comes from `meta/counter` in the same transaction.
-- Staff and the booth sign in with **Google** or **email + password** (`staffSignIn` in `hosting/js/queue/config.js`).
+- Staff and the booth sign in with **Google** or **email + password** (`staffSignIn` in `shared/queue/config.ts`).
   Only **verified** emails listed in `meta/operators` can change a status. Anyone can create an email + password
   account with the public web config, but nobody can verify an address they don't own, which is why the rules
   (and the operator page) insist on `email_verified`.
@@ -46,7 +46,7 @@ Who can do what (`firestore.rules`):
 3. **Build → Authentication → Get started**, then enable the **Anonymous**, **Google** and **Email/Password**
    sign-in providers (Email/Password: the first switch only; "Email link" is not used).
 4. **Project settings → General → Your apps → Web (`</>`)**: register an app (no need to tick Hosting here).
-   Copy the `firebaseConfig` object into `hosting/js/queue/config.js` as `ENVIRONMENTS.product.firebase`
+   Copy the `firebaseConfig` object into `shared/queue/config.ts` as `ENVIRONMENTS.product.firebase`
    (`apiKey`, `authDomain`, `projectId`, `appId` are enough). The web config is not a secret.
 5. In **Firestore → Data**, create document `meta/operators` with a field `emails` (array) listing the staff
    accounts (Google or email + password) and the account the booth PC signs in with.
@@ -67,15 +67,15 @@ Who can do what (`firestore.rules`):
 
 From the project folder (`firebase.json` and `.firebaserc` are there; the project is `space-line-54818`):
 ```
-npm run deploy:hosting          # publishes the folder hosting/ as it is (no build step)
+npm run deploy:hosting          # builds (product, with the type check), then publishes dist/hosting/
 npm run deploy                  # rules (firebase/firestore.rules) + hosting
 ```
-Only `hosting/` is published (Markdown files in it are skipped). `reception/`, `server/` and everything else stay
+Only `dist/hosting/` is published. `reception/`, `server/` and everything else stay
 on the reception PC.
 
 ## At the booth
 
-- The reception PC runs `start.bat` (`server/server.mjs`). With `ENVIRONMENT = 'product'`, the operator page and the
+- The reception PC runs `start.bat` (`server/server.ts`). With the `product` build, the operator page and the
   booth read the queue from Firestore.
 - Open `http://localhost:8000/operator.html` and sign in with an allowlisted account: **Googleでサインイン**, or the
   email + password form.

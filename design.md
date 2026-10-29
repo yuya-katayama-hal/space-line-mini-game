@@ -15,7 +15,7 @@ There are two things to make
 * The booth PC is online at the venue, so it reads registrations from the server directly
 * Visitors give a nickname only, no personal data
 * Host: Firebase (database + hosting) for now; the database can be swapped later (docs/queue-backends.md)
-* Environments: `product` (default, Firebase) and `dev` (local server), chosen only in hosting/js/queue/config.js, never from a URL
+* Environments: `product` (default, Firebase) and `dev` (local server), fixed when the pages are built (npm run build / build:dev, defined in shared/queue/config.ts), never from a URL
 * Folders split by where they run: `hosting/` is the only thing published to Firebase; `reception/` and `server/` stay on the reception PC
 * Firebase account: prepared by the project owner; project `space-line-54818` is live
 * Cancelling: both the visitor (own ticket, before their turn) and staff can cancel; status `cancelled`, counted apart from no-shows

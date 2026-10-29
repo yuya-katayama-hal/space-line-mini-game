@@ -1,6 +1,6 @@
 rules_version = '2';
 // Registration queue + NFC check-in. Only a nickname, a ticket number and opaque ids are stored: no personal data.
-// The reception PC's check-in checker uses a service account (server/checkin-firestore.mjs); service accounts
+// The reception PC's check-in checker uses a service account (server/checkin-firestore.ts); service accounts
 // bypass these rules, which is why the rules let no browser set checkedInAt or touch tags/.
 service cloud.firestore {
   match /databases/{database}/documents {
