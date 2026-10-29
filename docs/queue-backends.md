@@ -69,12 +69,13 @@ const q = await connectQueue();   // rejects with QueueError('unavailable') with
 | `q.setStatus(id, status)` | sets the status; returns the updated ticket. Staff |
 | `q.checkIn(id, { picc, cmac, ownerToken })` | NFC check-in with the two values from the tag's URL. Resolves with `{ status, reason, ticket }`: `accepted`, `already`, `rejected` (+ reason), or `pending` when the checker hasn't answered yet. Visitors, own ticket only |
 | `q.checkInManual(id)` | staff check a visitor in by hand; same result shape. Staff |
+| `q.cancelTicket(id, { ownerToken })` | the visitor withdraws their own ticket while it is `waiting` or `called`. Resolves with `{ status: 'cancelled' \| 'rejected', reason, ticket }` (reasons `not-owner`, `closed`, `no-ticket`). Staff cancel with `setStatus(id, 'cancelled')` |
 | `q.listTickets()` | every ticket (also finished ones), ascending number, for records / CSV. Staff (local backend) |
 | `q.close()` | stops all watchers |
 
 ```
 Ticket = { id: string, number: integer, nickname: string,
-           status: 'waiting' | 'called' | 'playing' | 'done' | 'noshow',
+           status: 'waiting' | 'called' | 'playing' | 'done' | 'noshow' | 'cancelled',
            createdAt: ms, updatedAt: ms, checkedInAt: ms | null }
 serving = the lowest-number ticket that is 'called' or 'playing', or null
 waiting = the 'waiting' tickets, ascending by number          (sortQueue() in common.js builds both)

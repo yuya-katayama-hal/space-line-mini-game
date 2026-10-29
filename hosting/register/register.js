@@ -154,7 +154,8 @@ function openTicket(t) {
 
 function render() {
   const status = ticket ? ticket.status : 'missing';
-  for (const s of ['waiting', 'called', 'playing', 'done', 'noshow', 'missing']) $(`st-${s}`).classList.toggle('hidden', s !== status);
+  for (const s of ['waiting', 'called', 'playing', 'done', 'noshow', 'cancelled', 'missing']) $(`st-${s}`).classList.toggle('hidden', s !== status);
+  $('cancel').classList.toggle('hidden', !(status === 'waiting' || status === 'called'));
   $('status').classList.toggle('is-called', status === 'called');
   const checkedIn = !!(ticket && ticket.checkedInAt);
   $('t-checkin').classList.toggle('hidden', !checkedIn);
@@ -173,9 +174,37 @@ function buzz() {
   try { navigator.vibrate?.([200, 100, 200]); } catch {}
 }
 
-$('again').addEventListener('click', () => {
-  if (ticket && (ticket.status === 'waiting' || ticket.status === 'called')
-    && !confirm('いまの整理券をはなれて、新しく登録しますか?\nLeave this ticket and register again?')) return;
+// ---------- cancel ----------
+const CANCEL_ERRORS = {
+  'closed': 'もう順番が始まっているか、終わっています / Your turn has already started or ended',
+  'not-owner': 'このブラウザで登録した整理券ではありません / This ticket wasn\'t registered in this browser',
+  'no-ticket': '整理券が見つかりません / Ticket not found',
+};
+async function cancelTicket() {
+  const saved = store.get();
+  if (!ticket || !saved) return { status: 'rejected', reason: 'no-ticket' };
+  return q.cancelTicket(ticket.id, { ownerToken: saved.ownerToken });
+}
+$('cancel').addEventListener('click', async () => {
+  if (!confirm('受付をキャンセルしますか?\n順番は元に戻せません。\nCancel your ticket? You will lose your place in the queue.')) return;
+  $('cancel').disabled = true;
+  $('cancel-error').textContent = '';
+  try {
+    const r = await cancelTicket();
+    if (r.status === 'cancelled') { ticket = r.ticket || { ...ticket, status: 'cancelled' }; render(); }
+    else $('cancel-error').textContent = CANCEL_ERRORS[r.reason] || `キャンセルできませんでした / Couldn't cancel (${r.reason})`;
+  } catch (err) {
+    $('cancel-error').textContent = `キャンセルできませんでした / Couldn't cancel (${err.message})`;
+  } finally {
+    $('cancel').disabled = false;
+  }
+});
+
+$('again').addEventListener('click', async () => {
+  if (ticket && (ticket.status === 'waiting' || ticket.status === 'called')) {
+    if (!confirm('いまの整理券をキャンセルして、新しく登録しますか?\nCancel this ticket and register again?')) return;
+    await cancelTicket().catch(() => {}); // don't leave the old ticket waiting in the queue
+  }
   stopTicket?.(); stopQueue?.();
   stopTicket = stopQueue = null;
   ticket = null;

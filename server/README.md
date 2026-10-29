@@ -36,6 +36,7 @@ export async function openStore({ dataDir, url }) → {
   setStatus(id, status, now),         // updated Ticket, or null if there is no such ticket
   callNext(now),                      // lowest 'waiting' → 'called' (atomic!), or null
   checkIn({ id, manual, ownerHash, tagUid, counter, now }),   // NFC check-in (atomic!): see below
+  cancel({ id, ownerHash, now }),     // the owner withdraws a waiting / called ticket (atomic; decideCancel() in checkin.mjs)
   close(),
 }
 ```

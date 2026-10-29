@@ -68,15 +68,35 @@ async function run() {
     b = await q.createTicket('テスト');
     assert(b.number > a.number, `#${b.number} after #${a.number}`);
   });
-  // 8 keeps the local server under its limit of 10 registrations per minute from one address
+  // 2 + 7 + 1 (below) keeps the local server under its limit of 10 registrations per minute from one address
   let burst = [];
-  await check('8 registrations at the same moment get 8 different numbers', async () => {
-    burst = await Promise.all(Array.from({ length: 8 }, () => q.createTicket('テスト')));
+  await check('7 registrations at the same moment get 7 different numbers', async () => {
+    burst = await Promise.all(Array.from({ length: 7 }, () => q.createTicket('テスト')));
     const nums = burst.map((t) => t.number);
     assert(new Set(nums).size === nums.length, `duplicate numbers: ${nums.join(',')}`);
     assert(nums.every((n) => n > b.number), `numbers not after #${b.number}: ${nums.join(',')}`);
   });
-  const ours = new Set([a, b, ...burst].filter(Boolean).map((t) => t.id));
+  let c = null;
+  await check('cancelTicket() by its owner → cancelled, and it leaves the queue', async () => {
+    c = await q.createTicket('テスト');
+    const r = await q.cancelTicket(c.id, { ownerToken: c.ownerToken });
+    assert(r.status === 'cancelled' && r.ticket && r.ticket.status === 'cancelled', `got ${r.status} / ${r.reason}`);
+    await waitFor((cb) => q.watchQueue(cb), (s) => s && Array.isArray(s.waiting) && !s.waiting.some((t) => t.id === c.id), 8000);
+  });
+  await check('cancelling it again → "closed"', async () => {
+    const r = await q.cancelTicket(c.id, { ownerToken: c.ownerToken });
+    assert(r.status === 'rejected' && r.reason === 'closed', `got ${r.status} / ${r.reason}`);
+  });
+  if (a.ownerToken) {
+    await check('cancelTicket() of someone else\'s ticket → "not-owner"', async () => {
+      const r = await q.cancelTicket(b.id, { ownerToken: a.ownerToken });
+      assert(r.status === 'rejected' && r.reason === 'not-owner', `got ${r.status} / ${r.reason}`);
+      assert((await q.getTicket(b.id)).status === 'waiting', 'the other ticket must stay waiting');
+    });
+  } else {
+    report('skip', 'cancelTicket() not-owner', 'ownership is this browser\'s sign-in; test it from a second browser');
+  }
+  const ours = new Set([a, b, c, ...burst].filter(Boolean).map((t) => t.id));
   await check('empty nickname → "invalid"', () => expectError('invalid', () => q.createTicket('   ')));
   await check('getTicket() finds it; unknown id → null', async () => {
     const t = await q.getTicket(a.id);
@@ -113,6 +133,12 @@ async function run() {
     const r2 = await q.checkIn(a.id, { ...VECTOR, ownerToken: a.ownerToken });
     assert(r2.status === 'rejected' && r2.reason === 'replayed', `replay gave ${r2.status} / ${r2.reason}`);
   });
+  if (tapWorks && c) {
+    await check('checkIn() on a cancelled ticket → "closed"', async () => {
+      const r = await q.checkIn(c.id, { picc: VECTOR.picc, cmac: VECTOR.cmac, ownerToken: c.ownerToken });
+      assert(r.status === 'rejected' && r.reason === 'closed', `got ${r.status} / ${r.reason}`);
+    });
+  }
   if (tapWorks && a.ownerToken) {
     await check('checkIn() for someone else\'s ticket → "not-owner"', async () => {
       const r = await q.checkIn(b.id, { ...VECTOR, ownerToken: a.ownerToken }); // ticket b, but a's proof of ownership
@@ -149,6 +175,10 @@ async function run() {
       await seen;
     });
     await check('unknown status → "invalid"', () => expectError('invalid', () => q.setStatus(a.id, 'bogus')));
+    await check('staff can cancel a ticket (setStatus cancelled)', async () => {
+      const t = await q.setStatus(burst[burst.length - 1].id, 'cancelled');
+      assert(t && t.status === 'cancelled', `setStatus returned ${t && t.status}`);
+    });
     await check('callNext() calls the lowest waiting ticket', async () => {
       // only when every waiting ticket is one of ours, so a real visitor is never called
       const s = await waitFor((cb) => q.watchQueue(cb), (s) => s && Array.isArray(s.waiting), 5000);

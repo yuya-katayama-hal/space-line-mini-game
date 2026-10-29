@@ -32,6 +32,8 @@ Who can do what (`firestore.rules`):
   Only **verified** emails listed in `meta/operators` can change a status. Anyone can create an email + password
   account with the public web config, but nobody can verify an address they don't own, which is why the rules
   (and the operator page) insist on `email_verified`.
+- The visitor who created a ticket (its `owner`) may cancel it themselves, only from `waiting` / `called` to
+  `cancelled`. Staff can set `cancelled` like any other status.
 - NFC check-in (`docs/nfc-checkin.md`): a ticket records its creator's anonymous sign-in id (`owner`). Only that
   sign-in can file a check-in request in `checkins/` for it; staff can file manual ones. The reception PC answers
   them with a service account, which is the only writer of `tickets/*.checkedInAt` and `tags/` (no browser can

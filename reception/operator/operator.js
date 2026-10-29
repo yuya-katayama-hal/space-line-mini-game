@@ -139,7 +139,7 @@ function render() {
     cell(minutesSince(t.createdAt));
     cell(t.checkedInAt ? `✔ ${clock(t.checkedInAt)}` : '—', t.checkedInAt ? 'in' : 'out');
     const td = cell('', 'act');
-    td.append(button('呼ぶ', () => act(() => q.setStatus(t.id, 'called'))), ' ', button('不在', () => markNoShow(t)));
+    td.append(button('呼ぶ', () => act(() => q.setStatus(t.id, 'called'))), ' ', button('不在', () => markNoShow(t)), ' ', button('取消', () => cancelTicket(t)));
     if (!t.checkedInAt) td.append(' ', button('手動', () => manualCheckIn(t)));
     list.appendChild(tr);
   }
@@ -184,7 +184,8 @@ async function refreshStats() {
     const all = await q.listTickets();
     const n = (f) => all.filter(f).length;
     $('stats').innerHTML = `登録 <b>${all.length}</b> · 来場 <b>${n((t) => t.checkedInAt)}</b> · 体験 <b>${n((t) => t.status === 'done')}</b>`
-      + `<br><small>registered · checked in · finished</small>`;
+      + ` · キャンセル <b>${n((t) => t.status === 'cancelled')}</b>`
+      + `<br><small>registered · checked in · finished · cancelled</small>`;
   } catch (err) {
     $('stats').textContent = `— (${err.message})`;
   }
@@ -214,6 +215,13 @@ $('csv').addEventListener('click', () => act(async () => {
 }));
 $('s-manual').addEventListener('click', () => { if (queue && queue.serving) manualCheckIn(queue.serving); });
 
+// staff cancel a ticket (the visitor asked, or it was made by mistake); unlike no-show it is counted as cancelled
+async function cancelTicket(t) {
+  if (!confirm(`#${t.number} ${t.nickname} さんの整理券をキャンセルしますか?\nCancel ticket #${t.number}?`)) return;
+  await act(() => q.setStatus(t.id, 'cancelled'));
+  refreshStats();
+}
+
 async function markNoShow(t) {
   const r = await act(() => q.setStatus(t.id, 'noshow'));
   if (r) { missed.set(r.id, r); render(); }
@@ -225,6 +233,7 @@ for (const b of document.querySelectorAll('#serving [data-act]')) {
     const s = queue && queue.serving;
     if (!s) return;
     if (b.dataset.act === 'noshow') markNoShow(s);
+    else if (b.dataset.act === 'cancelled') cancelTicket(s);
     else act(() => q.setStatus(s.id, b.dataset.act));
   });
 }

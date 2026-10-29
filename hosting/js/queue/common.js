@@ -1,7 +1,8 @@
 // Pieces shared by every backend adapter and the pages. Adapters import from here (not from index.js),
 // so there is no import cycle between index.js and the adapters it loads.
 
-export const STATUSES = ['waiting', 'called', 'playing', 'done', 'noshow'];
+// cancelled: the visitor (or staff) withdrew the ticket before their turn
+export const STATUSES = ['waiting', 'called', 'playing', 'done', 'noshow', 'cancelled'];
 
 // Errors from any backend reach the pages as a QueueError with one of these codes, so pages never
 // need to know about HTTP status numbers or a database's own error names.

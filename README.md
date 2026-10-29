@@ -40,7 +40,9 @@ without `node_modules`, run `npm install` once.
 ## Registration queue (prototype)
 
 Visitors scan a QR code, enter a nickname on their phone and get a ticket number that updates live
-("あと N 人", "順番です!"). Staff call visitors from the operator page. When a called visitor starts a
+("あと N 人", "順番です!"). Staff call visitors from the operator page. A ticket can be cancelled before its turn,
+by the visitor (受付をキャンセル on the phone; 新しく登録 also cancels the old ticket) or by staff (取消 / キャンセル on
+the operator page); cancellations are counted separately from no-shows. When a called visitor starts a
 turn, the booth greets them by name and marks the ticket done at the end.
 
 - **Phone page:** `/register/` · **Operator page:** `/operator.html` · **Booth:** `/` (shows the QR and "次は #N" on the attract screen)

@@ -1,10 +1,10 @@
 // Queue store: a JSON file (data/queue.json). The default; needs nothing installed.
 // Every store implements the same async interface (see server/README.md):
 //   name, active(), list(), get(id), create({ id, nickname, ownerHash, now }), setStatus(id, status, now),
-//   callNext(now), checkIn({ id, manual, ownerHash, tagUid, counter, now }), close()
+//   callNext(now), checkIn({ id, manual, ownerHash, tagUid, counter, now }), cancel({ id, ownerHash, now }), close()
 import fs from 'node:fs';
 import path from 'node:path';
-import { decideCheckIn } from './checkin.mjs';
+import { decideCheckIn, decideCancel } from './checkin.mjs';
 
 const isActive = (t) => t.status === 'waiting' || t.status === 'called' || t.status === 'playing';
 
@@ -62,6 +62,12 @@ export async function openStore({ dataDir }) {
         if (!t.checkedInAt) { t.checkedInAt = now; t.updatedAt = now; }
         save();
       }
+      return { status: d.status, reason: d.reason, ticket: t };
+    },
+    async cancel({ id, ownerHash = null, now }) {
+      const t = find(id);
+      const d = decideCancel({ ticket: t, ownerMatches: !!t && !!t.ownerHash && t.ownerHash === ownerHash });
+      if (d.status === 'cancelled') { t.status = 'cancelled'; t.updatedAt = now; save(); }
       return { status: d.status, reason: d.reason, ticket: t };
     },
     async close() {},

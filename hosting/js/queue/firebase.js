@@ -193,6 +193,22 @@ export async function connect(opts) {
       return submitCheckin({ ticketId: id, manual: true, requestedBy: fbAuth.currentUser.email });
     }),
     listTickets: guard(async () => (await fs.getDocs(ticketsCol)).docs.map(toTicket).sort((a, b) => a.number - b.number)),
+    // a visitor withdraws their own ticket; the rules allow only its owner, only from waiting / called
+    async cancelTicket(id) {
+      const ref = fs.doc(ticketsCol, id);
+      const t = toTicket(await fs.getDoc(ref).catch((err) => { throw toQueueError(err); }));
+      if (!t) return { status: 'rejected', reason: 'no-ticket', ticket: null };
+      if (t.status !== 'waiting' && t.status !== 'called') return { status: 'rejected', reason: 'closed', ticket: null };
+      try {
+        await ensureVisitor();
+        await fs.updateDoc(ref, { status: 'cancelled', updatedAt: Date.now() });
+      } catch (err) {
+        const e = toQueueError(err);
+        if (e.code === 'unauthenticated' || e.code === 'forbidden') return { status: 'rejected', reason: 'not-owner', ticket: null };
+        throw e;
+      }
+      return { status: 'cancelled', reason: null, ticket: toTicket(await fs.getDoc(ref)) };
+    },
     close() {
       for (const u of unsubs) u();
       unsubs.clear();
