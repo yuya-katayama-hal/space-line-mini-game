@@ -3,7 +3,8 @@
     "rules": "firebase/firestore.rules"
   },
   "hosting": {
-    "public": "hosting",
+    "public": "dist/hosting",
+    "predeploy": ["npm run build"],
     "ignore": ["**/.*", "**/*.md"],
     "redirects": [
       { "source": "/", "destination": "/register/", "type": 302 }

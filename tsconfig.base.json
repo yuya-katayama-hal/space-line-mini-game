@@ -1,0 +1,16 @@
+{
+  // Settings shared by both projects. Nothing is compiled: Vite bundles the pages and Node 24+ runs the
+  // server, tools and tests as .ts directly, so tsc only checks types (npm run typecheck).
+  "compilerOptions": {
+    "target": "ES2023",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}

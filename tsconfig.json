@@ -1,0 +1,5 @@
+{
+  // For editors: the two projects (browser code and Node code). Type check with npm run typecheck.
+  "files": [],
+  "references": [{ "path": "./tsconfig.web.json" }, { "path": "./tsconfig.node.json" }]
+}

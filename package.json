@@ -4,19 +4,40 @@
   "private": true,
   "description": "Hand-gesture exploration of space today and the Moon in 2126 (未来創造展)",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "start": "node server/server.mjs",
-    "start:lan": "node -e \"process.env.HOST='0.0.0.0'; import('./server/server.mjs')\"",
+    "start": "node server/server.ts",
+    "start:lan": "node -e \"process.env.HOST='0.0.0.0'; import('./server/server.ts')\"",
+    "build": "node scripts/build.ts",
+    "build:dev": "node scripts/build.ts --env dev",
+    "typecheck": "tsc -p tsconfig.web.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:integration": "node tests/integration/api.ts && node tests/integration/checkin-race.ts",
+    "test:e2e": "node tests/e2e/pages.ts && node tests/e2e/contract.ts && node tests/e2e/checkin.ts && node tests/e2e/cancel.ts && node tests/e2e/booth.ts",
+    "test:all": "npm run typecheck && npm test && npm run build && npm run test:integration && npm run test:e2e",
     "deploy": "firebase deploy",
     "deploy:hosting": "firebase deploy --only hosting"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "0.10.14",
+    "firebase": "12.19.0",
     "qrcode-generator": "^1.4.4",
     "three": "0.170.0"
   },
   "optionalDependencies": {
     "firebase-admin": "14.5.0",
     "mariadb": "3.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "@types/three": "0.170.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "4.1.12"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
