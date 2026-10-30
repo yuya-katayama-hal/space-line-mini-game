@@ -1,0 +1,24 @@
+{
+  "name": "space-line",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SPACE LINE: hand-gesture booth for 未来創造展",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "4.1.12"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
