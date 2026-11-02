@@ -103,6 +103,33 @@ describe.each(Object.entries(STONE_ENGINES))('stone engine "%s"', (_, create) =>
     expect(earth).toBeCloseTo(Math.sqrt(2 * 2 / EARTH_G), 0);
   });
 
+  it('a stone let go while moving keeps moving that way', async () => {
+    await world({ stones: [{ x: 0, z: 0, radius: r }] });
+    w!.grab(0);
+    w!.moveHeld({ x: 0, y: 1, z: 0 });
+    w!.advance(0.5);
+    w!.release({ x: 0.6, y: 0, z: 0 });
+    settle(0);
+    // the flight alone carries it 0.6 m/s * sqrt(2 * 0.95 / g), about 0.65 m
+    expect(at(0).pos.x).toBeGreaterThan(0.55);
+    expect(Math.abs(at(0).pos.z)).toBeLessThan(0.05);
+  });
+
+  it('previews a throw along its arc, from the stone toward where it flies', async () => {
+    await world({ stones: [{ x: 0, z: 0, radius: r }] });
+    w!.grab(0);
+    w!.moveHeld({ x: 0, y: 1, z: 0 });
+    w!.advance(0.5);
+    const preview = w!.dropPreview({ x: 0.6, y: 0, z: 0 })!;
+    const first = preview.path[0], last = preview.path[preview.path.length - 1];
+    expect(Math.hypot(first.x, first.y - 1, first.z)).toBeLessThan(1e-3);
+    expect(preview.path.length).toBeGreaterThan(2);
+    expect(preview.path.every((p, i) => i === 0 || p.x >= preview.path[i - 1].x - 1e-9)).toBe(true);
+    expect(Math.abs(last.x - preview.pos.x)).toBeLessThan(0.01);
+    expect(preview.pos.x).toBeGreaterThan(0.55);
+    expect(Math.abs(preview.pos.y - r)).toBeLessThan(TOL);
+  });
+
   it('previews the landing spot of the held stone', async () => {
     await world({ surfaces: [ground, bin], stones: [{ x: 1, z: 1, radius: r }] });
     expect(w!.dropPreview()).toBeNull();

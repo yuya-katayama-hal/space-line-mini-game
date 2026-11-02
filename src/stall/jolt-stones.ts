@@ -1,10 +1,10 @@
 // Stones that roll, tumble and collide with their real shapes, on Jolt Physics (jolt-physics, WebAssembly).
 // Unlike the exact engine this steps time (fixed 1/60 s), so results are approximate, and the drop preview can
-// only show the first contact under the stone, not where it ends up after rolling.
+// only show where a throw first touches something, not where the stone ends up after rolling.
 // Jolt objects live in WebAssembly memory: everything made with `new J.X` is destroyed by hand.
 import initJolt from 'jolt-physics';
 import { restingHeight, surfaceUnder } from './stones.ts';
-import type { Obstacle, StoneEngine, StoneView, Vec3 } from './stones.ts';
+import type { DropPreview, Obstacle, StoneEngine, StoneView, Vec3 } from './stones.ts';
 
 type J = Awaited<ReturnType<typeof initJolt>>;
 type Body = InstanceType<J['Body']>;
@@ -13,6 +13,7 @@ const STEP = 1 / 60;
 const LAYER_STATIC = 0, LAYER_MOVING = 1;
 const PENETRATION_SLOP = 0.002; // m: Jolt's default (2 cm) would sink a 5 cm stone visibly into the floor
 const PRESETTLE_LIMIT = 15;     // s of simulated time to let the initial heaps come to rest
+const PREVIEW_LIMIT = 5;        // s of flight the drop preview follows
 const MAX_CARRY_SPEED = 3;      // m/s: a held stone follows the hand no faster, or it would fling what it touches
 // Contacts here are float32 with a small penetration, and a hull's bottom isn't exactly one radius down, so a
 // stone counts as on a surface whose top is anywhere up to half a radius below its centre.
@@ -46,7 +47,9 @@ export const createJoltStones: StoneEngine = async (opts) => {
   physicsSettings.mPenetrationSlop = PENETRATION_SLOP;
   system.SetPhysicsSettings(physicsSettings);
 
+  let gravity = opts.gravity;
   function setGravity(g: number) {
+    gravity = g;
     const v = new J.Vec3(0, -g, 0);
     system.SetGravity(v);
     J.destroy(v);
@@ -161,36 +164,49 @@ export const createJoltStones: StoneEngine = async (opts) => {
     moveHeld(p) {
       if (held !== null) target = p;
     },
-    release() {
+    release(v = { x: 0, y: 0, z: 0 }) {
       if (held === null) return;
       const id = stones[held].GetID();
       bodyInterface.SetMotionType(id, J.EMotionType_Dynamic, J.EActivation_Activate);
-      const zero = new J.Vec3(0, 0, 0);
-      bodyInterface.SetLinearVelocity(id, zero); // let go at rest: never depend on how fast the hand moved
+      const linear = new J.Vec3(v.x, v.y, v.z), zero = new J.Vec3(0, 0, 0);
+      bodyInterface.SetLinearVelocity(id, linear);
       bodyInterface.SetAngularVelocity(id, zero);
+      J.destroy(linear);
       J.destroy(zero);
       held = null;
       target = null;
     },
-    dropPreview() {
+    // follows the throw's parabola in short ray segments until the first hit (rays, not the stone's shape: close
+    // enough for a guide)
+    dropPreview(v = { x: 0, y: 0, z: 0 }): DropPreview | null {
       if (held === null) return null;
       const from = position(stones[held]);
-      const reach = 10;
-      const origin = new J.RVec3(from.x, from.y, from.z);
-      const dir = new J.Vec3(0, -reach, 0);
-      const ray = new J.RRayCast(origin, dir);
+      const radius = opts.stones[held].radius;
+      const at = (t: number): Vec3 => ({ x: from.x + v.x * t, y: from.y + v.y * t - gravity * t * t / 2, z: from.z + v.z * t });
       const raySettings = new J.RayCastSettings();
-      const collector = new J.CastRayClosestHitCollisionCollector();
       const bpFilter = new J.DefaultBroadPhaseLayerFilter(jolt.GetObjectVsBroadPhaseLayerFilter(), LAYER_MOVING);
       const layerFilter = new J.DefaultObjectLayerFilter(jolt.GetObjectLayerPairFilter(), LAYER_MOVING);
       const bodyFilter = new J.IgnoreSingleBodyFilter(stones[held].GetID());
       const shapeFilter = new J.ShapeFilter();
-      system.GetNarrowPhaseQuery().CastRay(ray, raySettings, collector, bpFilter, layerFilter, bodyFilter, shapeFilter);
-      const hit = collector.HadHit() ? from.y - reach * collector.mHit.mFraction : null;
-      for (const o of [origin, dir, ray, raySettings, collector, bpFilter, layerFilter, bodyFilter, shapeFilter]) J.destroy(o);
-      if (hit === null) return null;
-      const radius = opts.stones[held].radius;
-      return { pos: { x: from.x, y: hit + radius, z: from.z }, on: surfaceUnder(opts.surfaces, from.x, from.z, supportBottom(hit + radius, radius)) };
+      const path: Vec3[] = [from];
+      let hit: Vec3 | null = null;
+      for (let t = STEP; t <= PREVIEW_LIMIT && !hit; t += STEP) {
+        const a = path[path.length - 1], b = at(t);
+        const origin = new J.RVec3(a.x, a.y, a.z), dir = new J.Vec3(b.x - a.x, b.y - a.y, b.z - a.z);
+        const ray = new J.RRayCast(origin, dir);
+        const collector = new J.CastRayClosestHitCollisionCollector();
+        system.GetNarrowPhaseQuery().CastRay(ray, raySettings, collector, bpFilter, layerFilter, bodyFilter, shapeFilter);
+        if (collector.HadHit()) {
+          const f = collector.mHit.mFraction;
+          hit = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f };
+        }
+        path.push(hit ?? b);
+        for (const o of [origin, dir, ray, collector]) J.destroy(o);
+      }
+      for (const o of [raySettings, bpFilter, layerFilter, bodyFilter, shapeFilter]) J.destroy(o);
+      if (!hit) return null;
+      const pos = { x: hit.x, y: hit.y + radius, z: hit.z };
+      return { pos, path, on: surfaceUnder(opts.surfaces, pos.x, pos.z, supportBottom(pos.y, radius)) };
     },
     setGravity,
     dispose() {

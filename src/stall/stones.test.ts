@@ -148,3 +148,115 @@ describe('stone physics', () => {
     expect(y(many, 0)).toBeCloseTo(y(once, 0), 12);
   });
 });
+
+describe('stone physics: letting go while moving', () => {
+  const g = MOON_G;
+  const at = (w: ReturnType<typeof world>, id: number) => w.stones().find((s) => s.id === id)!;
+  function throwFrom(w: ReturnType<typeof world>, id: number, p: { x: number; y: number; z: number }, v: { x: number; y: number; z: number }) {
+    expect(w.grab(id)).toBe(true);
+    w.moveHeld(p);
+    w.release(v);
+  }
+
+  it('flies the exact parabola of its release velocity', () => {
+    const w = world({ restitution: 0, stones: [{ x: 5, z: 5, radius: r }] });
+    throwFrom(w, 0, { x: 0, y: 1 + r, z: 0 }, { x: 0.5, y: 0.2, z: -0.3 });
+    w.advance(0.4);
+    const s = at(w, 0);
+    expect(s.status).toBe('falling');
+    expect(s.pos.x).toBeCloseTo(0.5 * 0.4, 12);
+    expect(s.pos.z).toBeCloseTo(-0.3 * 0.4, 12);
+    expect(s.pos.y).toBeCloseTo(1 + r + 0.2 * 0.4 - g * 0.4 ** 2 / 2, 12);
+  });
+
+  it('comes to rest where the parabola meets the ground', () => {
+    const w = world({ restitution: 0, stones: [{ x: 5, z: 5, radius: r }] });
+    throwFrom(w, 0, { x: 0, y: 1 + r, z: 0 }, { x: 0.5, y: 0, z: 0 });
+    w.advance(10);
+    const s = at(w, 0);
+    expect(s.status).toBe('resting');
+    expect(s.pos.x).toBeCloseTo(0.5 * Math.sqrt(2 / g), 9);
+    expect(s.pos.y).toBeCloseTo(r, 12);
+  });
+
+  it('stops at a wall it hits and drops down beside it', () => {
+    const wall = { min: { x: 0.3, y: 0, z: -1 }, max: { x: 0.32, y: 0.5, z: 1 } };
+    const w = world({ restitution: 0, obstacles: [wall], stones: [{ x: -1, z: 0, radius: r }] });
+    throwFrom(w, 0, { x: 0, y: 0.3 + r, z: 0 }, { x: 1, y: 0, z: 0 });
+    w.advance(10);
+    const s = at(w, 0);
+    expect(s.pos.x).toBeCloseTo(0.3 - r, 9);
+    expect(s.pos.y).toBeCloseTo(r, 12);
+  });
+
+  it('can come to rest on top of a wall', () => {
+    const wall = { min: { x: 0, y: 0, z: -1 }, max: { x: 0.1, y: 0.5, z: 1 } };
+    const w = world({ restitution: 0, obstacles: [wall], stones: [{ x: -1, z: 0, radius: r }] });
+    throwFrom(w, 0, { x: 0.05, y: 1, z: 0 }, { x: 0, y: 0, z: 0 });
+    w.advance(10);
+    expect(at(w, 0).pos.y).toBeCloseTo(0.5 + r, 12);
+  });
+
+  it('thrown onto another stone, rests touching it without overlap', () => {
+    const w = world({ restitution: 0, stones: [{ x: 0.5, z: 0, radius: r }, { x: -1, z: 0, radius: r }] });
+    throwFrom(w, 1, { x: 0, y: 0.6, z: 0 }, { x: 0.63, y: 0, z: 0 });
+    w.advance(10);
+    const a = at(w, 0), b = at(w, 1);
+    expect(b.status).toBe('resting');
+    expect(Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y, a.pos.z - b.pos.z)).toBeGreaterThanOrEqual(2 * r - 1e-9);
+    expect(Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y, a.pos.z - b.pos.z)).toBeLessThan(2 * r + 1e-6);
+  });
+
+  it('a sideways hit low on another stone pushes it clear before it settles', () => {
+    const w = world({ restitution: 0, stones: [{ x: 0.5, z: 0, radius: r }, { x: -1, z: 0, radius: r }] });
+    throwFrom(w, 1, { x: 0, y: r, z: 0 }, { x: 1, y: 0.3, z: 0 }); // skims along and hits it from the side
+    w.advance(10);
+    const a = at(w, 0), b = at(w, 1);
+    expect(Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y, a.pos.z - b.pos.z)).toBeGreaterThanOrEqual(2 * r - 1e-9);
+  });
+
+  it('previews exactly where a throw will come to rest, with the arc it flies', () => {
+    const wall = { min: { x: 0.3, y: 0, z: -1 }, max: { x: 0.32, y: 0.2, z: 1 } };
+    const make = () => world({ obstacles: [wall], stones: [{ x: 0.6, z: 0, radius: r }, { x: -1, z: 0, radius: r }] });
+    for (const v of [{ x: 0, y: 0, z: 0 }, { x: 0.3, y: 0, z: 0 }, { x: 0.8, y: 0.4, z: 0.1 }, { x: 1.5, y: 0, z: 0 }]) {
+      const w = make();
+      w.grab(1);
+      w.moveHeld({ x: 0, y: 0.6, z: 0 });
+      const preview = w.dropPreview(v)!;
+      expect(preview.path[0]).toEqual({ x: 0, y: 0.6, z: 0 });
+      w.release(v);
+      w.advance(10);
+      const landed = at(w, 1);
+      expect(preview.pos.x).toBeCloseTo(landed.pos.x, 9);
+      expect(preview.pos.y).toBeCloseTo(landed.pos.y, 9);
+      expect(preview.pos.z).toBeCloseTo(landed.pos.z, 9);
+      expect(preview.on).toBe(landed.on);
+    }
+  });
+
+  it('switching gravity mid-flight keeps position and velocity', () => {
+    const w = world({ restitution: 0, stones: [{ x: 5, z: 5, radius: r }] });
+    throwFrom(w, 0, { x: 0, y: 2, z: 0 }, { x: 0.4, y: 0, z: 0 });
+    w.advance(0.5);
+    const before = at(w, 0).pos;
+    w.setGravity(EARTH_G);
+    expect(at(w, 0).pos).toEqual(before);
+    w.advance(0.1);
+    const s = at(w, 0);
+    expect(s.pos.x).toBeCloseTo(0.4 * 0.6, 12);
+    expect(s.pos.y).toBeCloseTo(before.y - g * 0.5 * 0.1 - EARTH_G * 0.1 ** 2 / 2, 12);
+  });
+
+  it('a throw does not depend on how time is advanced', () => {
+    const make = () => {
+      const w = world({ stones: [{ x: 0.4, z: 0, radius: r }, { x: -1, z: 0, radius: r }] });
+      throwFrom(w, 1, { x: 0, y: 0.7, z: 0 }, { x: 0.5, y: 0.3, z: 0.05 });
+      return w;
+    };
+    const once = make(), many = make();
+    once.advance(1.37);
+    for (let i = 0; i < 137; i++) many.advance(0.01);
+    const p = at(once, 1).pos, q = at(many, 1).pos;
+    expect(Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z)).toBeLessThan(1e-12);
+  });
+});
