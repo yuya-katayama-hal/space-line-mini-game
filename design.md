@@ -47,8 +47,12 @@ Educational and interactive: send a rocket from Earth to Mars (top-down view of 
   hand speed, depth or precise timing (which is why throwing games were rejected).
   * At the stall a closed hand grabs a stone and opening it lets go, so the booth's fist-to-go-back gesture is
     off there. Visitors leave by holding still on a "board the shuttle" sign.
-* Stone physics: hand-written first (falling at 1/6 g, simple settling), behind an interface so Jolt Physics
-  (jolt-physics, WASM, fixed steps) can replace it if stone counts or stone-on-stone contact call for it.
+  * Exception, by choice: a stone let go while moving keeps the carry's velocity, averaged over about 0.08 s so a
+    twitch as the hand opens doesn't count, and capped at 1.5 m/s. The drop guide draws the resulting arc.
+* Stone physics: two engines behind one interface, switchable (STALL_CONFIG.engine, P key). "exact": closed-form
+  throws and falls at 1/6 g (the first contact found by conservative advancement), no rolling, and an exact drop
+  guide. "jolt": Jolt Physics (jolt-physics 1.1.0, WASM, fixed 1/60 s steps) for rolling, tumbling and real stone
+  shapes; its drop guide shows only where a throw first touches. Which one the exhibition uses is still open.
   Orbits stay on the exact engine (src/physics).
 * Containers are an original design. If Jolt is used, the credit may read "physics: Jolt Physics, the library
   also used in DEATH STRANDING 2", pending the organizers' rules on third-party names.

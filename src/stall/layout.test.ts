@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIN, KINDS, SURFACES, binFootprint, initialStones } from './layout.ts';
+import { BIN, KINDS, OBSTACLES, SURFACES, binFootprint, initialStones } from './layout.ts';
 import { createStones, MOON_G } from './stones.ts';
 
 describe('stall layout', () => {
@@ -18,6 +18,16 @@ describe('stall layout', () => {
         expect(s.pos.z).toBeLessThanOrEqual(fp.maxZ);
       }
     });
+  });
+
+  it('no stone starts inside a bin wall', () => {
+    const gap = (v: number, min: number, max: number) => Math.max(min - v, 0, v - max);
+    for (const s of stones) {
+      for (const w of OBSTACLES) {
+        const d = Math.hypot(gap(s.pos.x, w.min.x, w.max.x), gap(s.pos.y, w.min.y, w.max.y), gap(s.pos.z, w.min.z, w.max.z));
+        expect(d).toBeGreaterThanOrEqual(s.radius - 1e-9);
+      }
+    }
   });
 
   it('heaps stay low, like poured stones, not stacked towers', () => {

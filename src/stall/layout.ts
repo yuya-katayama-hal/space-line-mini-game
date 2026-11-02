@@ -1,6 +1,6 @@
 // The stone stall, in metres: four bins of moon stones in a row, and the visitor's souvenir pouch in front.
 import { restingHeight } from './stones.ts';
-import type { Footprint, Surface, Vec3 } from './stones.ts';
+import type { Footprint, Obstacle, Surface, Vec3 } from './stones.ts';
 
 export interface StoneKind {
   readonly id: string;
@@ -36,15 +36,30 @@ export const KINDS: readonly StoneKind[] = [
   },
 ];
 
-export const BIN = { width: 0.42, depth: 0.36, wall: 0.4, floor: 0.22, z: -0.35, gap: 0.08 };
+export const BIN = { width: 0.42, depth: 0.36, wall: 0.4, front: 0.3, floor: 0.22, z: -0.35, gap: 0.08, thickness: 0.02 };
 export const binX = (i: number) => (i - (KINDS.length - 1) / 2) * (BIN.width + BIN.gap);
 export const binFootprint = (i: number): Footprint => ({
   minX: binX(i) - BIN.width / 2, maxX: binX(i) + BIN.width / 2,
   minZ: BIN.z - BIN.depth / 2, maxZ: BIN.z + BIN.depth / 2,
 });
 
-export const POUCH = { footprint: { minX: 0.45, maxX: 0.8, minZ: 0.12, maxZ: 0.4 }, floor: 0.04, wall: 0.16 };
+export const POUCH = { footprint: { minX: 0.45, maxX: 0.8, minZ: 0.12, maxZ: 0.4 }, floor: 0.04, wall: 0.16, thickness: 0.015 };
 export const POUCH_LIMIT = 3; // shown on the sign, never enforced
+
+// the walls around a footprint, straddling its edges; the front wall can be lower so the contents show
+function walls(fp: Footprint, height: number, front: number, t: number): Obstacle[] {
+  const box = (x0: number, x1: number, y1: number, z0: number, z1: number): Obstacle => ({ min: { x: x0, y: 0, z: z0 }, max: { x: x1, y: y1, z: z1 } });
+  return [
+    box(fp.minX - t / 2, fp.minX + t / 2, height, fp.minZ, fp.maxZ),
+    box(fp.maxX - t / 2, fp.maxX + t / 2, height, fp.minZ, fp.maxZ),
+    box(fp.minX, fp.maxX, height, fp.minZ - t / 2, fp.minZ + t / 2),
+    box(fp.minX, fp.maxX, front, fp.maxZ - t / 2, fp.maxZ + t / 2),
+  ];
+}
+export const binWalls = (i: number) => walls(binFootprint(i), BIN.wall, BIN.front, BIN.thickness);
+export const pouchWalls = () => walls(POUCH.footprint, POUCH.wall, POUCH.wall, POUCH.thickness);
+/** what keeps rolling stones in: drawn from the same boxes the physics uses */
+export const OBSTACLES: readonly Obstacle[] = [...KINDS.flatMap((_, i) => binWalls(i)), ...pouchWalls()];
 
 export const SURFACES: readonly Surface[] = [
   { id: 'ground', height: 0, footprint: { minX: -50, maxX: 50, minZ: -50, maxZ: 50 } },
@@ -74,10 +89,11 @@ export function initialStones() {
     const fp = binFootprint(i);
     for (let n = 0; n < k.count; n++) {
       const radius = k.radius[0] + rand() * (k.radius[1] - k.radius[0]);
+      const margin = radius + BIN.thickness / 2; // the walls straddle the footprint's edges
       let best = { x: 0, z: 0, y: Infinity };
       for (let tries = 0; tries < 12; tries++) {
-        const x = fp.minX + radius + rand() * (fp.maxX - fp.minX - 2 * radius);
-        const z = fp.minZ + radius + rand() * (fp.maxZ - fp.minZ - 2 * radius);
+        const x = fp.minX + margin + rand() * (fp.maxX - fp.minX - 2 * margin);
+        const z = fp.minZ + margin + rand() * (fp.maxZ - fp.minZ - 2 * margin);
         const y = restingHeight(SURFACES, placed, x, z, radius);
         if (y < best.y) best = { x, z, y };
       }

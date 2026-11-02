@@ -14,6 +14,7 @@
     #title p { margin: 4px 0 0; font-size: 14px; color: #a9b3c8; }
     #count { position: absolute; left: 24px; bottom: 20px; font-size: 18px; pointer-events: none; }
     #count.over { color: #ffb36b; }
+    #engine { position: absolute; right: 20px; bottom: 20px; font-size: 13px; color: #8a93a8; pointer-events: none; }
     #board { position: absolute; right: 20px; top: 18px; width: 150px; height: 96px; border-radius: 14px; background: rgba(40, 70, 110, 0.85);
       display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 15px; text-align: center; }
     #board-ring { position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
@@ -38,6 +39,7 @@
       <p>Close your hand on a stone to lift it, open it over the pouch (mouse: hold the button to carry)</p>
     </div>
     <div id="count"></div>
+    <div id="engine"></div>
     <div id="board"><div id="board-ring"></div>シャトルに乗る<br>Board the shuttle<br><small>手をとめて待つ / hold still</small></div>
     <div id="drop-label" class="hidden">袋に入ります<br>Into the pouch</div>
     <div id="cursor" class="hidden"></div>
