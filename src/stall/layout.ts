@@ -46,6 +46,15 @@ export const binFootprint = (i: number): Footprint => ({
 export const POUCH = { footprint: { minX: 0.45, maxX: 0.8, minZ: 0.12, maxZ: 0.4 }, floor: 0.04, wall: 0.16, thickness: 0.015 };
 export const POUCH_LIMIT = 3; // shown on the sign, never enforced
 
+/** A souvenir: a stone inside the pouch's walls with its bottom below their top, moving or not, unless held.
+ *  Being over the pouch isn't enough: that includes stones on the rim, on others above it, or flying over it. */
+export function inPouch(s: { pos: Vec3; radius: number; status: string }): boolean {
+  const fp = POUCH.footprint, t = POUCH.thickness / 2;
+  return s.status !== 'held'
+    && s.pos.x > fp.minX + t && s.pos.x < fp.maxX - t && s.pos.z > fp.minZ + t && s.pos.z < fp.maxZ - t
+    && s.pos.y - s.radius < POUCH.wall;
+}
+
 // the walls around a footprint, straddling its edges; the front wall can be lower so the contents show
 function walls(fp: Footprint, height: number, front: number, t: number): Obstacle[] {
   const box = (x0: number, x1: number, y1: number, z0: number, z1: number): Obstacle => ({ min: { x: x0, y: 0, z: z0 }, max: { x: x1, y: y1, z: z1 } });

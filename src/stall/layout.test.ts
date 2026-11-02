@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIN, KINDS, OBSTACLES, SURFACES, binFootprint, initialStones } from './layout.ts';
+import { BIN, KINDS, OBSTACLES, POUCH, SURFACES, binFootprint, inPouch, initialStones } from './layout.ts';
 import { createStones, MOON_G } from './stones.ts';
 
 describe('stall layout', () => {
@@ -36,5 +36,34 @@ describe('stall layout', () => {
 
   it('is the same for every visitor', () => {
     expect(initialStones()).toEqual(specs);
+  });
+});
+
+describe('what counts as in the pouch', () => {
+  const r = 0.04;
+  const fp = POUCH.footprint;
+  const mid = { x: (fp.minX + fp.maxX) / 2, z: (fp.minZ + fp.maxZ) / 2 };
+  const stone = (x: number, y: number, z: number, status: 'resting' | 'falling' | 'held' = 'resting') =>
+    ({ pos: { x, y, z }, radius: r, status });
+
+  it('a stone resting on the pouch floor', () => {
+    expect(inPouch(stone(mid.x, POUCH.floor + r, mid.z))).toBe(true);
+  });
+  it('not one resting on the rim, on top of a wall', () => {
+    expect(inPouch(stone(fp.minX, POUCH.wall + r, mid.z))).toBe(false);
+  });
+  it('not one sitting above the rim on other stones', () => {
+    expect(inPouch(stone(mid.x, POUCH.wall + r + 0.01, mid.z))).toBe(false);
+  });
+  it('one still falling or bouncing inside, below the rim', () => {
+    expect(inPouch(stone(mid.x, POUCH.floor + r, mid.z, 'falling'))).toBe(true);
+    expect(inPouch(stone(mid.x, POUCH.wall, mid.z, 'falling'))).toBe(true);
+  });
+  it('not one flying over the pouch above the rim, or held over it', () => {
+    expect(inPouch(stone(mid.x, POUCH.wall + r + 0.05, mid.z, 'falling'))).toBe(false);
+    expect(inPouch(stone(mid.x, POUCH.floor + r, mid.z, 'held'))).toBe(false);
+  });
+  it('not one resting outside the walls', () => {
+    expect(inPouch(stone(fp.maxX + 2 * r, r, mid.z))).toBe(false);
   });
 });

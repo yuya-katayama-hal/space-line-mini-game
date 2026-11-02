@@ -5,7 +5,7 @@ import { DropGuide } from './guide.ts';
 import type { StallInput } from './input.ts';
 import { STONE_ENGINES } from './engines.ts';
 import type { StoneEngineName } from './engines.ts';
-import { BIN, KINDS, OBSTACLES, POUCH, POUCH_LIMIT, SURFACES, binWalls, binX, initialStones, pouchWalls, seeded } from './layout.ts';
+import { BIN, KINDS, OBSTACLES, POUCH, POUCH_LIMIT, SURFACES, binWalls, binX, inPouch, initialStones, pouchWalls, seeded } from './layout.ts';
 import { MOON_G } from './stones.ts';
 import type { Obstacle, StonePhysics, StoneView } from './stones.ts';
 
@@ -163,7 +163,7 @@ export class Stall {
   }
 
   private collected(physics: StonePhysics): StoneView[] {
-    return physics.stones().filter((s) => s.on === 'pouch' && s.status !== 'held');
+    return physics.stones().filter(inPouch);
   }
 
   // the stone nearest along the ray, within a generous radius so a jittery hand can still pick it
@@ -240,7 +240,7 @@ export class Stall {
     const [still, moving] = STALL_CONFIG.guideSpeed;
     const speed = this.carryVelocity.length();
     const alpha = Math.min(1, Math.max(0, (moving - speed) / (moving - still)));
-    const intoPouch = preview?.on === 'pouch';
+    const intoPouch = !!preview && !!stone && inPouch({ pos: preview.pos, radius: stone.radius, status: 'resting' });
     this.ui.dropLabel.classList.toggle('hidden', !intoPouch || alpha < 0.5);
     if (!preview || !stone || this.held === null || alpha === 0) { this.guide.hide(); return; }
     this.guide.show(preview.path, preview.pos, stone.radius, this.meshes[this.held], intoPouch ? 0x7dff9a : 0xffffff);
