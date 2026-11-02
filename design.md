@@ -37,6 +37,25 @@ Educational and interactive: send a rocket from Earth to Mars (top-down view of 
 * Also available: `kepler` (exact, Sun only) and `leapfrog` (fixed steps, any bodies; kept for comparison).
 * Game simplifications: 2D, circular coplanar planet orbits, instant burns, a generous arrival zone around Mars.
 
+## Phase 2 explore: the Moon as an ordinary tourist spot
+* In 2126 the Moon is lived in and is one of many tourist spots. Getting around is easy and automatic: the
+  visitor picks the next stop on a map and a shuttle / rover takes them there, so travel is felt, not steered.
+* The stone stall is one stop on that map. Core activity, optional: take moon stones from many artificial bins
+  and cases set out for tourists (「ご自由にお取りください」). It is staged on purpose ("this is set up"), not
+  natural ground. Every stop must also work with no interaction at all.
+* Input: the hand chooses where (smoothed 2D position), an open or closed hand chooses when. Never depend on
+  hand speed, depth or precise timing (which is why throwing games were rejected).
+  * At the stall a closed hand grabs a stone and opening it lets go, so the booth's fist-to-go-back gesture is
+    off there. Visitors leave by holding still on a "board the shuttle" sign.
+* Stone physics: hand-written first (falling at 1/6 g, simple settling), behind an interface so Jolt Physics
+  (jolt-physics, WASM, fixed steps) can replace it if stone counts or stone-on-stone contact call for it.
+  Orbits stay on the exact engine (src/physics).
+* Containers are an original design. If Jolt is used, the credit may read "physics: Jolt Physics, the library
+  also used in DEATH STRANDING 2", pending the organizers' rules on third-party names.
+* Still open: the other stops on the map; how long a visitor may wander and how a turn ends; container style
+  (logistics crate or gift-shop crate); a pouch limit (e.g. 3) or none; how phase 2's "travel is easy" sits
+  with phase 1's "even our neighbour takes months and most of the fuel" (to revisit with phase 1).
+
 ## Nickname, phone to booth
 * Main path (online): a printed QR at the booth opens a small static phone page. The visitor types a nickname on
   their own phone (Japanese input works), and the page shows a nickname QR. The booth's webcam reads it, with a
