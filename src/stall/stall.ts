@@ -5,7 +5,9 @@ import { DropGuide } from './guide.ts';
 import type { StallInput } from './input.ts';
 import { STONE_ENGINES } from './engines.ts';
 import type { StoneEngineName } from './engines.ts';
-import { BIN, KINDS, OBSTACLES, POUCH, POUCH_LIMIT, SURFACES, binWalls, binX, inPouch, initialStones, pouchWalls, seeded } from './layout.ts';
+import {
+  BIN, KINDS, OBSTACLES, POUCH, POUCH_LIMIT, SURFACES, binWalls, binX, inPouch, initialStones, pouchWalls, seeded, souvenirSummary,
+} from './layout.ts';
 import { MOON_G } from './stones.ts';
 import type { Obstacle, StonePhysics, StoneView } from './stones.ts';
 
@@ -155,9 +157,10 @@ export class Stall {
   private board(physics: StonePhysics) {
     this.phase = 'boarded';
     if (this.held !== null) { physics.release(); this.held = null; }
-    const taken = this.collected(physics).map((s) => KINDS[this.kindOf[s.id]].name);
-    this.ui.boarded.querySelector('.taken')!.textContent = taken.length
-      ? `おみやげ: ${taken.join('、')} / Souvenirs: ${taken.length}`
+    const taken = souvenirSummary(this.collected(physics).map((s) => this.kindOf[s.id]));
+    this.ui.boarded.querySelector('.taken')!.textContent = taken.count
+      ? `おみやげ ${taken.count}個: ${taken.ja}
+Souvenirs (${taken.count}): ${taken.en}`
       : 'おみやげなし。それもまた、旅です / No souvenirs this time';
     this.ui.boarded.classList.remove('hidden');
   }

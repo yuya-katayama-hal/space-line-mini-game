@@ -88,6 +88,18 @@ export function seeded(seed: number) {
   };
 }
 
+/** What a visitor took home, grouped by kind in bin order, e.g. 「玄武岩 (海の石) ×2、角礫岩」. */
+export function souvenirSummary(kinds: readonly number[]): { ja: string; en: string; count: number } {
+  const counts = KINDS.map((_, i) => kinds.filter((k) => k === i).length);
+  const items = KINDS.flatMap((k, i) => (counts[i] ? [{ k, n: counts[i] }] : []));
+  const times = (n: number) => (n > 1 ? ` ×${n}` : '');
+  return {
+    ja: items.map(({ k, n }) => k.name + times(n)).join('、'),
+    en: items.map(({ k, n }) => k.nameEn + times(n)).join(', '),
+    count: kinds.length,
+  };
+}
+
 /** The stones the stall starts with, and which kind each one is. Stones don't roll in the physics, so random
  *  spots would stack into towers; each stone takes the lowest of several spots instead, like a poured heap. */
 export function initialStones() {

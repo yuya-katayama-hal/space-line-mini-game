@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIN, KINDS, OBSTACLES, POUCH, SURFACES, binFootprint, inPouch, initialStones } from './layout.ts';
+import { BIN, KINDS, OBSTACLES, POUCH, SURFACES, binFootprint, inPouch, initialStones, souvenirSummary } from './layout.ts';
 import { createStones, MOON_G } from './stones.ts';
 
 describe('stall layout', () => {
@@ -65,5 +65,21 @@ describe('what counts as in the pouch', () => {
   });
   it('not one resting outside the walls', () => {
     expect(inPouch(stone(fp.maxX + 2 * r, r, mid.z))).toBe(false);
+  });
+});
+
+describe('the souvenir summary', () => {
+  const [highland, basalt, , breccia] = [0, 1, 2, 3];
+
+  it('groups stones of the same kind, in bin order, with counts above one', () => {
+    expect(souvenirSummary([breccia, basalt, basalt, breccia, highland, basalt])).toEqual({
+      ja: `${KINDS[highland].name}、${KINDS[basalt].name} ×3、${KINDS[breccia].name} ×2`,
+      en: `${KINDS[highland].nameEn}, ${KINDS[basalt].nameEn} ×3, ${KINDS[breccia].nameEn} ×2`,
+      count: 6,
+    });
+  });
+
+  it('is empty when nothing was taken', () => {
+    expect(souvenirSummary([])).toEqual({ ja: '', en: '', count: 0 });
   });
 });
