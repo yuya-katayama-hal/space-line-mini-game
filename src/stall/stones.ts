@@ -1,7 +1,7 @@
-// Stones are released at rest and only fall straight down, so every fall, bounce and landing has a closed form:
-// no time steps, and the state at any time is evaluated, not integrated. A stone comes to rest on the highest
-// support under it (a surface or another stone, at sphere contact height) and stays there; no rolling.
-// Behind StonePhysics so a full engine (e.g. Jolt) can replace it if stone-on-stone dynamics turn out to matter.
+// The exact stone engine. Stones are released at rest and only fall straight down, so every fall, bounce and
+// landing has a closed form: no time steps, and the state at any time is evaluated, not integrated. A stone comes
+// to rest on the highest support under it (a surface or another stone, at sphere contact height) and stays
+// there; no rolling. jolt-stones.ts implements the same StonePhysics with rolling and real shapes.
 
 export const MOON_G = 1.62;
 export const EARTH_G = 9.81;
@@ -28,12 +28,36 @@ export interface Surface {
   readonly footprint: Footprint;
 }
 
+/** an axis-aligned solid box, e.g. a bin wall */
+export interface Obstacle {
+  readonly min: Vec3;
+  readonly max: Vec3;
+}
+
+export interface StoneSpec {
+  readonly x: number;
+  readonly z: number;
+  readonly radius: number;
+  /** the stone's real shape, relative to its centre; engines without shapes use the radius */
+  readonly hull?: readonly Vec3[];
+}
+
 export interface StoneOptions {
   gravity: number;
   restitution: number;
   surfaces: readonly Surface[];
+  /** walls that keep rolling stones in; engines without rolling don't need them */
+  obstacles?: readonly Obstacle[];
   /** settled in order onto whatever is beneath, as if dropped long ago */
-  stones: readonly { x: number; z: number; radius: number }[];
+  stones: readonly StoneSpec[];
+}
+
+/** orientation as a unit quaternion */
+export interface Quat {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly w: number;
 }
 
 export type StoneStatus = 'resting' | 'falling' | 'held';
@@ -43,6 +67,8 @@ export interface StoneView {
   readonly pos: Vec3;
   readonly radius: number;
   readonly status: StoneStatus;
+  /** null when the engine doesn't turn stones */
+  readonly rot: Quat | null;
   /** the highest surface beneath the stone */
   readonly on: string | null;
 }
@@ -58,6 +84,18 @@ export interface StonePhysics {
   /** where the held stone would come to rest if released now; null when nothing is held */
   dropPreview(): { pos: Vec3; on: string | null } | null;
   setGravity(g: number): void;
+  dispose(): void;
+}
+
+export type StoneEngine = (opts: StoneOptions) => Promise<StonePhysics>;
+
+/** the highest surface whose footprint contains (x, z) and whose top is at or below bottomY */
+export function surfaceUnder(surfaces: readonly Surface[], x: number, z: number, bottomY: number): string | null {
+  let on: string | null = null, onHeight = -Infinity;
+  for (const f of surfaces) {
+    if (inside(f.footprint, x, z) && f.height <= bottomY + EPS && f.height > onHeight) { on = f.id; onHeight = f.height; }
+  }
+  return on;
 }
 
 /** a fall from (t0, y0) with vertical speed v0 (up positive) onto the rest height */
@@ -158,13 +196,6 @@ export function createStones(opts: StoneOptions): StonePhysics {
 
   const held = () => stones.find((s) => s.held) ?? null;
 
-  function surfaceUnder(s: Stone, y: number): string | null {
-    let on: string | null = null, onHeight = -Infinity;
-    for (const f of opts.surfaces) {
-      if (inside(f.footprint, s.x, s.z) && f.height <= y - s.radius + EPS && f.height > onHeight) { on = f.id; onHeight = f.height; }
-    }
-    return on;
-  }
 
   return {
     get time() { return time; },
@@ -174,14 +205,14 @@ export function createStones(opts: StoneOptions): StonePhysics {
         const state = s.fall ? fallAt(s.fall, time) : null;
         const y = state ? state.y : s.y;
         const status: StoneStatus = s.held ? 'held' : state && !state.done ? 'falling' : 'resting';
-        return { id: s.id, pos: { x: s.x, y, z: s.z }, radius: s.radius, status, on: surfaceUnder(s, y) };
+        return { id: s.id, pos: { x: s.x, y, z: s.z }, radius: s.radius, status, rot: null, on: surfaceUnder(opts.surfaces, s.x, s.z, y - s.radius) };
       });
     },
     dropPreview() {
       const s = held();
       if (!s) return null;
       const y = restHeight(s, s.y);
-      return { pos: { x: s.x, y, z: s.z }, on: surfaceUnder(s, y) };
+      return { pos: { x: s.x, y, z: s.z }, on: surfaceUnder(opts.surfaces, s.x, s.z, y - s.radius) };
     },
     grab(id) {
       const s = stones[id];
@@ -214,5 +245,6 @@ export function createStones(opts: StoneOptions): StonePhysics {
       }
       gravity = g;
     },
+    dispose() {},
   };
 }

@@ -23,6 +23,7 @@
     "esbuild@0.28.2": true
   },
   "dependencies": {
+    "jolt-physics": "1.1.0",
     "three": "0.170.0"
   }
 }
