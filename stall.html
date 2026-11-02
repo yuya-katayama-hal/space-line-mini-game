@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPACE LINE - 月の石おみやげ広場</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #020308; overflow: hidden; font-family: system-ui, "Hiragino Sans", "Yu Gothic UI", sans-serif; color: #fff; }
+    #stage { position: relative; width: 100vw; height: 100vh; }
+    #view { display: block; width: 100%; height: 100%; cursor: none; touch-action: none; }
+    .hidden { display: none !important; }
+    #title { position: absolute; left: 24px; top: 18px; pointer-events: none; }
+    #title h1 { margin: 0; font-size: 24px; }
+    #title p { margin: 4px 0 0; font-size: 14px; color: #a9b3c8; }
+    #count { position: absolute; left: 24px; bottom: 20px; font-size: 18px; pointer-events: none; }
+    #count.over { color: #ffb36b; }
+    #board { position: absolute; right: 20px; top: 18px; width: 150px; height: 96px; border-radius: 14px; background: rgba(40, 70, 110, 0.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 15px; text-align: center; }
+    #board-ring { position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+      background: conic-gradient(rgba(125, 255, 154, 0.45) calc(var(--p, 0) * 360deg), transparent 0); }
+    #cursor { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.7);
+      pointer-events: none; box-sizing: border-box; }
+    #cursor.glow { border-color: #7dff9a; box-shadow: 0 0 14px #7dff9a; }
+    #cursor.closed { background: rgba(125, 255, 154, 0.25); }
+    #drop-label { position: absolute; left: 0; top: 0; margin: 14px 0 0 -60px; width: 120px; text-align: center; font-size: 13px;
+      color: #7dff9a; text-shadow: 0 0 6px #000; pointer-events: none; }
+    #boarded { position: absolute; inset: 0; background: rgba(2, 3, 8, 0.82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+    #boarded h2 { margin: 0; font-size: 30px; }
+    #boarded p { margin: 0; color: #c9d1e3; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="view"></canvas>
+    <div id="title">
+      <h1>月の石おみやげ広場 / Moon Stone Souvenir Plaza</h1>
+      <p>石の上で手をにぎって持ち上げ、袋の上で手をひらく (マウス: 押したまま運んで離す)</p>
+      <p>Close your hand on a stone to lift it, open it over the pouch (mouse: hold the button to carry)</p>
+    </div>
+    <div id="count"></div>
+    <div id="board"><div id="board-ring"></div>シャトルに乗る<br>Board the shuttle<br><small>手をとめて待つ / hold still</small></div>
+    <div id="drop-label" class="hidden">袋に入ります<br>Into the pouch</div>
+    <div id="cursor" class="hidden"></div>
+    <div id="boarded" class="hidden">
+      <h2>シャトルに乗りました / Boarded</h2>
+      <p class="taken"></p>
+      <p>(試作はここまで。クリックでもう一度 / End of prototype, click to restart)</p>
+    </div>
+  </div>
+  <script type="module" src="/src/stall/main.ts"></script>
+</body>
+</html>
