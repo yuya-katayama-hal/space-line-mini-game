@@ -28,7 +28,7 @@ function mediapipeWasm(): Plugin {
 export default defineConfig({
   plugins: [mediapipeWasm()],
   build: {
-    rollupOptions: { input: { minigame: 'index.html', stall: 'stall.html' } },
+    rollupOptions: { input: { menu: 'index.html', minigame: 'minigame/index.html', stall: 'stall/index.html' } },
     // Jolt's WebAssembly comes embedded in one ~3.6 MB chunk, loaded only when the stall switches to Jolt
     chunkSizeWarningLimit: 3700,
   },

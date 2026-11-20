@@ -25,7 +25,7 @@ Educational and interactive: send a rocket from Earth to Mars (top-down view of 
 * Reveal: both paths and their fuel (speed change from low Earth orbit into low Mars orbit), against flying a
   straight line (~100 km/s), and the Earth message: reaching even our neighbour takes months and most of the fuel.
 * Small print "for nerds": how it is computed (below).
-* Prototype: `npm run dev` (mouse). Tuning numbers are in `CONFIG` in src/minigame/game.ts.
+* Prototype: `npm run dev`, then /minigame/ (mouse). Tuning numbers are in `CONFIG` in src/minigame/game.ts.
 
 ## Physics engine
 * Swappable: the game talks only to the `PhysicsEngine` interface (src/physics/engine.ts); engines are listed in

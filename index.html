@@ -3,14 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SPACE LINE — 遠回りが、いちばんの近道</title>
+  <title>SPACE LINE</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #04060c; overflow: hidden; }
-    #game { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
+    html, body { margin: 0; min-height: 100%; background: #04060c; color: #fff; font-family: system-ui, "Hiragino Sans", "Yu Gothic UI", sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 48px 16px; }
+    h1 { margin: 0 0 24px; font-size: 28px; }
+    a { display: block; margin: 0 0 12px; padding: 16px 20px; border-radius: 12px; background: rgba(40, 70, 110, 0.6); color: #fff; text-decoration: none; }
+    a:hover { background: rgba(60, 100, 150, 0.8); }
+    small { display: block; margin-top: 4px; color: #a9b3c8; }
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <script type="module" src="/src/minigame/main.ts"></script>
+  <main>
+    <h1>SPACE LINE</h1>
+    <a href="minigame/">遠回りが、いちばんの近道<small>フェーズ1 ミニゲーム / Phase 1 mini-game</small></a>
+    <a href="stall/">月の石おみやげ広場<small>フェーズ2 月の石の屋台 / Phase 2 Moon stone stall</small></a>
+  </main>
 </body>
 </html>

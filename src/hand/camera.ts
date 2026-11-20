@@ -26,9 +26,10 @@ export async function startHandCamera(video: HTMLVideoElement, preview: HTMLCanv
   }
 
   status('手の認識を準備中… / Loading hand tracking...');
-  const fileset = await FilesetResolver.forVisionTasks('./mediapipe/wasm');
+  // from the site root: each page lives in its own folder, where a relative path would point
+  const fileset = await FilesetResolver.forVisionTasks(`${import.meta.env.BASE_URL}mediapipe/wasm`);
   const options = (delegate: 'GPU' | 'CPU'): HandLandmarkerOptions => ({
-    baseOptions: { modelAssetPath: './models/hand_landmarker.task', delegate },
+    baseOptions: { modelAssetPath: `${import.meta.env.BASE_URL}models/hand_landmarker.task`, delegate },
     runningMode: 'VIDEO',
     numHands: 1,
     minHandDetectionConfidence: 0.55,
