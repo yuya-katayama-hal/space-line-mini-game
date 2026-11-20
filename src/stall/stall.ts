@@ -1,19 +1,21 @@
 // The moon-stone stall: one stop of phase 2 (design.md). Take stones from the bins if you like, drop them in the
 // pouch, and leave by holding still on the shuttle sign. Nothing here is required.
 import * as THREE from 'three';
+import { carryPoint } from './carry.ts';
 import { DropGuide } from './guide.ts';
 import type { StallInput } from './input.ts';
 import { STONE_ENGINES } from './engines.ts';
 import type { StoneEngineName } from './engines.ts';
 import {
-  BIN, KINDS, OBSTACLES, POUCH, POUCH_LIMIT, SURFACES, binWalls, binX, inPouch, initialStones, pouchWalls, seeded, souvenirSummary,
+  BIN, KINDS, OBSTACLES, POUCH, POUCH_LIMIT, SURFACES, binFootprint, binWalls, binX, inPouch, initialStones, pouchWalls, seeded,
+  souvenirSummary,
 } from './layout.ts';
 import { MOON_G } from './stones.ts';
 import type { Obstacle, StonePhysics, StoneView } from './stones.ts';
 
 export const STALL_CONFIG = {
   engine: 'exact' as StoneEngineName, // the P key switches while running
-  carryHeight: 0.62,  // m: a held stone travels on this plane, above the bin walls
+  carryClearance: 0.08, // m: a held stone's centre stays at least this far above the bin walls
   carrySmoothing: 12, // 1/s: how fast a held stone catches up with the hand
   // a stone let go while moving keeps the carry's velocity: averaged over throwAveraging so a twitch as the hand
   // opens doesn't count, and capped so it can't be flung across the room
@@ -28,6 +30,7 @@ export const STALL_CONFIG = {
 };
 
 type Phase = 'browsing' | 'boarded';
+const BASE_FOV = 50; // degrees, vertical
 
 export class Stall {
   private phase: Phase = 'browsing';
@@ -44,7 +47,7 @@ export class Stall {
   private dwellStart: number | null = null;
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(50, 1, 0.05, 500);
+  private readonly camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 500);
   private readonly raycaster = new THREE.Raycaster();
   private readonly canvas: HTMLCanvasElement;
   private readonly input: StallInput;
@@ -133,7 +136,7 @@ export class Stall {
       this.held = null;
       this.carry = null;
     } else if (ray && this.carry) {
-      const target = this.carryTarget(ray);
+      const target = this.carryTarget(ray) ?? this.carry.clone(); // a ray that misses the plane leaves it where it is
       const before = this.carry.clone();
       // exponential catch-up: the stone lifts out of the bin and follows the hand without jumping
       this.carry.lerp(target, 1 - Math.exp(-STALL_CONFIG.carrySmoothing * dt));
@@ -187,11 +190,13 @@ Souvenirs (${taken.count}): ${taken.en}`
     return { x: v.x, y: v.y, z: v.z };
   }
 
-  private carryTarget(ray: THREE.Ray): THREE.Vector3 {
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -STALL_CONFIG.carryHeight);
-    const hit = ray.intersectPlane(plane, new THREE.Vector3());
-    // pointing above the horizon: keep the stone at the far edge of the stall
-    return hit && hit.z > -1.2 ? hit : ray.at(2, new THREE.Vector3()).setY(STALL_CONFIG.carryHeight).setZ(-1.2);
+  // on the upright plane through the bin row, from just left of the first bin to just right of the pouch
+  private carryTarget(ray: THREE.Ray): THREE.Vector3 | null {
+    const p = carryPoint(ray.origin, ray.direction, {
+      z: BIN.z, minY: BIN.wall + STALL_CONFIG.carryClearance, maxY: 1,
+      minX: binFootprint(0).minX - 0.1, maxX: POUCH.footprint.maxX + 0.1,
+    });
+    return p && new THREE.Vector3(p.x, p.y, p.z);
   }
 
   private rayAt(x: number, y: number): THREE.Ray {
@@ -212,6 +217,11 @@ Souvenirs (${taken.count}): ${taken.en}`
       this.renderer.setPixelRatio(devicePixelRatio);
       this.renderer.setSize(w, h, false);
       this.camera.aspect = w / h;
+      // a narrow window widens the view so the whole row, bins to pouch, stays on screen
+      const halfRow = (POUCH.footprint.maxX - binFootprint(0).minX) / 2 + 0.12;
+      const depth = this.camera.position.z - BIN.z;
+      const fitFov = 2 * Math.atan(halfRow / depth / this.camera.aspect) * 180 / Math.PI;
+      this.camera.fov = Math.max(BASE_FOV, fitFov);
       this.camera.updateProjectionMatrix();
     }
     const physics = this.physics;

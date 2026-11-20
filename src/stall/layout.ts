@@ -1,4 +1,5 @@
-// The stone stall, in metres: four bins of moon stones in a row, and the visitor's souvenir pouch in front.
+// The stone stall, in metres: four bins of moon stones in a row, and the visitor's souvenir pouch at the row's right
+// end, at the same depth, so carrying a stone to it is a sideways move (see carry.ts). The row is centred on x = 0.
 import { restingHeight } from './stones.ts';
 import type { Footprint, Obstacle, Surface, Vec3 } from './stones.ts';
 
@@ -36,14 +37,21 @@ export const KINDS: readonly StoneKind[] = [
   },
 ];
 
-export const BIN = { width: 0.42, depth: 0.36, wall: 0.4, front: 0.3, floor: 0.22, z: -0.35, gap: 0.08, thickness: 0.02 };
-export const binX = (i: number) => (i - (KINDS.length - 1) / 2) * (BIN.width + BIN.gap);
+export const BIN = { width: 0.42, depth: 0.36, wall: 0.4, front: 0.3, floor: 0.22, z: -0.35, gap: 0.06, thickness: 0.02 };
+const POUCH_SIZE = { width: 0.3, depth: 0.3, gap: 0.1 }; // gap: from the last bin
+const BINS_WIDTH = KINDS.length * BIN.width + (KINDS.length - 1) * BIN.gap;
+const ROW_LEFT = -(BINS_WIDTH + POUCH_SIZE.gap + POUCH_SIZE.width) / 2;
+export const binX = (i: number) => ROW_LEFT + BIN.width / 2 + i * (BIN.width + BIN.gap);
 export const binFootprint = (i: number): Footprint => ({
   minX: binX(i) - BIN.width / 2, maxX: binX(i) + BIN.width / 2,
   minZ: BIN.z - BIN.depth / 2, maxZ: BIN.z + BIN.depth / 2,
 });
 
-export const POUCH = { footprint: { minX: 0.45, maxX: 0.8, minZ: 0.12, maxZ: 0.4 }, floor: 0.04, wall: 0.16, thickness: 0.015 };
+const POUCH_LEFT = ROW_LEFT + BINS_WIDTH + POUCH_SIZE.gap;
+export const POUCH = {
+  footprint: { minX: POUCH_LEFT, maxX: POUCH_LEFT + POUCH_SIZE.width, minZ: BIN.z - POUCH_SIZE.depth / 2, maxZ: BIN.z + POUCH_SIZE.depth / 2 },
+  floor: 0.04, wall: 0.16, thickness: 0.015,
+};
 export const POUCH_LIMIT = 3; // shown on the sign, never enforced
 
 /** A souvenir: a stone inside the pouch's walls with its bottom below their top, moving or not, unless held.

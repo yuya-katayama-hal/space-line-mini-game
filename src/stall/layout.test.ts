@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIN, KINDS, OBSTACLES, POUCH, SURFACES, binFootprint, inPouch, initialStones, souvenirSummary } from './layout.ts';
+import { BIN, KINDS, OBSTACLES, POUCH, SURFACES, binFootprint, binWalls, inPouch, initialStones, pouchWalls, souvenirSummary } from './layout.ts';
 import { createStones, MOON_G } from './stones.ts';
 
 describe('stall layout', () => {
@@ -36,6 +36,19 @@ describe('stall layout', () => {
 
   it('is the same for every visitor', () => {
     expect(initialStones()).toEqual(specs);
+  });
+
+  it('puts the pouch beside the last bin, at the same depth, so carrying there is a sideways move', () => {
+    const last = binWalls(KINDS.length - 1), pouch = pouchWalls();
+    const lastRight = Math.max(...last.map((w) => w.max.x)), pouchLeft = Math.min(...pouch.map((w) => w.min.x));
+    expect(pouchLeft).toBeGreaterThan(lastRight);
+    expect(POUCH.footprint.minZ).toBeLessThan(BIN.z);
+    expect(POUCH.footprint.maxZ).toBeGreaterThan(BIN.z);
+  });
+
+  it('keeps the row of bins and the pouch centred', () => {
+    const left = binFootprint(0).minX, right = POUCH.footprint.maxX;
+    expect(left + right).toBeCloseTo(0, 9);
   });
 });
 
