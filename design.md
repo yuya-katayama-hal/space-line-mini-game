@@ -47,6 +47,10 @@ Educational and interactive: send a rocket from Earth to Mars (top-down view of 
   hand speed, depth or precise timing (which is why throwing games were rejected).
   * At the stall a closed hand grabs a stone and opening it lets go, so the booth's fist-to-go-back gesture is
     off there. Visitors leave by holding still on a "board the shuttle" sign.
+  * Hand tracking (src/hand): MediaPipe's hand landmarker on the webcam, offline. The cursor sits at the palm
+    centre (wrist and knuckles), which stays put when the hand closes. Closed: at least three fingers curled; open:
+    at least three extended; anything between keeps the current state, and a change must last 80 ms. The mouse
+    takes over when no hand is in view. Key C shows the camera preview for tuning the mapped region on site.
   * Exception, by choice: a stone let go while moving keeps the carry's velocity, averaged over about 0.08 s so a
     twitch as the hand opens doesn't count, and capped at 1.5 m/s. The drop guide draws the resulting arc.
 * Stone physics: two engines behind one interface, switchable (STALL_CONFIG.engine, P key). "exact": closed-form

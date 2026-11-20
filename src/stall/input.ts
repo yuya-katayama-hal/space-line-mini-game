@@ -8,6 +8,15 @@ export interface StallInput {
   readonly closed: boolean;
 }
 
+/** The hand while one is in view, otherwise the mouse (for development, or if the camera fails at the venue). */
+export function eitherInput(hand: StallInput | null, mouse: StallInput): StallInput {
+  const active = () => (hand && hand.pointer ? hand : mouse);
+  return {
+    get pointer() { return active().pointer; },
+    get closed() { return active().closed; },
+  };
+}
+
 // mouse: holding the left button stands in for a closed hand
 export function mouseStallInput(el: HTMLElement): StallInput {
   let pointer: Vec2 | null = null;
