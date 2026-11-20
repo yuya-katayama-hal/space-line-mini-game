@@ -3,9 +3,10 @@ import { HAND_CONFIG, HandTracker, handShape, palmCentre, regionToScreen } from 
 import type { HandFrame, Point3 } from './gesture.ts';
 
 // A synthetic hand in MediaPipe's 21-landmark layout. World coordinates are metres around the wrist; image
-// coordinates are the same shape, scaled and placed at `at` in the (unmirrored) camera image.
+// coordinates are the same shape, scaled and placed at `at` in the (unmirrored) camera image. `thumbGap` moves
+// the thumb tip to that many metres beside the index tip, for pinches.
 const FINGER_X = [-0.03, -0.01, 0.01, 0.03]; // index, middle, ring, pinky
-function hand(curled: readonly boolean[], at = { x: 0.5, y: 0.5 }): HandFrame {
+function hand(curled: readonly boolean[], at = { x: 0.5, y: 0.5 }, thumbGap?: number): HandFrame {
   const world: Point3[] = new Array(21);
   world[0] = { x: 0, y: 0, z: 0 };
   [[1, -0.04, -0.03], [2, -0.06, -0.05], [3, -0.07, -0.07], [4, -0.08, -0.09]]
@@ -17,11 +18,15 @@ function hand(curled: readonly boolean[], at = { x: 0.5, y: 0.5 }): HandFrame {
     world[base + 2] = curled[f] ? { x, y: -0.11, z: 0.03 } : { x, y: -0.155, z: 0 };
     world[base + 3] = curled[f] ? { x, y: -0.07, z: 0.03 } : { x, y: -0.18, z: 0 };
   });
+  if (thumbGap !== undefined) world[4] = { x: world[8].x - thumbGap, y: world[8].y, z: world[8].z };
   const landmarks = world.map((p) => ({ x: at.x + p.x * 2, y: at.y + p.y * 2, z: p.z }));
   return { landmarks, world };
 }
 const OPEN = [false, false, false, false];
 const FIST = [true, true, true, true];
+const TUCKED = [false, true, true, true]; // index out, the other three folded in
+const PALM_LENGTH = 0.0906; // wrist to middle knuckle in the synthetic hand
+const PINCH = 0.005;
 const SIZE = { width: 1000, height: 800 };
 
 describe('hand shape', () => {
@@ -37,6 +42,21 @@ describe('hand shape', () => {
   it('allows one finger to disagree', () => {
     expect(handShape(hand([true, true, true, false]).world)).toBe('closed');
     expect(handShape(hand([false, false, false, true]).world)).toBe('open');
+  });
+
+  it('reads a pinch as closed, whatever the other fingers do', () => {
+    expect(handShape(hand(OPEN, undefined, PINCH).world)).toBe('closed');
+    expect(handShape(hand(TUCKED, undefined, PINCH).world)).toBe('closed');
+  });
+
+  it('reads a released pinch as open, even with the other fingers still tucked', () => {
+    expect(handShape(hand(TUCKED).world)).toBe('open');
+  });
+
+  it('is unsure while the thumb and index are between pinched and apart', () => {
+    const between = (HAND_CONFIG.pinchBelow + HAND_CONFIG.pinchAbove) / 2 * PALM_LENGTH;
+    expect(handShape(hand(OPEN, undefined, between).world)).toBe('unsure');
+    expect(handShape(hand(TUCKED, undefined, between).world)).toBe('closed');
   });
 });
 
@@ -58,11 +78,11 @@ describe('cursor position', () => {
 
 describe('hand tracker', () => {
   const centre = { x: (HAND_CONFIG.region.x0 + HAND_CONFIG.region.x1) / 2, y: (HAND_CONFIG.region.y0 + HAND_CONFIG.region.y1) / 2 };
-  const placed = (curled: readonly boolean[]) => {
+  const placed = (curled: readonly boolean[], thumbGap?: number) => {
     // put the palm centre at the middle of the region, so the cursor lands mid-screen
     const h = hand(curled);
     const p = palmCentre(h.landmarks);
-    return hand(curled, { x: 0.5 + centre.x - p.x, y: 0.5 + centre.y - p.y });
+    return hand(curled, { x: 0.5 + centre.x - p.x, y: 0.5 + centre.y - p.y }, thumbGap);
   };
 
   it('has no pointer and an open hand before any hand is seen', () => {
@@ -100,6 +120,17 @@ describe('hand tracker', () => {
     t.update(placed(OPEN), 200, SIZE);
     expect(t.closed).toBe(true);
     t.update(placed(OPEN), 200 + HAND_CONFIG.debounceMs, SIZE);
+    expect(t.closed).toBe(false);
+  });
+
+  it('closes on a pinch held for the debounce time, and opens when it lets go', () => {
+    const t = new HandTracker();
+    t.update(placed(OPEN), 0, SIZE);
+    t.update(placed(OPEN, PINCH), 10, SIZE);
+    t.update(placed(OPEN, PINCH), 10 + HAND_CONFIG.debounceMs, SIZE);
+    expect(t.closed).toBe(true);
+    t.update(placed(TUCKED), 200, SIZE);
+    t.update(placed(TUCKED), 200 + HAND_CONFIG.debounceMs, SIZE);
     expect(t.closed).toBe(false);
   });
 

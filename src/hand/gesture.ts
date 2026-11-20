@@ -34,6 +34,10 @@ export const HAND_CONFIG = {
   // and extended beyond the second; in between it counts for neither, which gives the shape hysteresis
   curledBelow: 0.9,
   extendedAbove: 1.05,
+  // thumb tip to index tip, as a fraction of the palm (wrist to middle knuckle): pinched below the first, apart
+  // above the second, neither in between
+  pinchBelow: 0.25,
+  pinchAbove: 0.45,
   debounceMs: 80,   // a new shape must last this long, so a one-frame tracking glitch can't drop a stone
   handLostMs: 400,  // tracking may drop out this long before the hand counts as gone
 };
@@ -44,16 +48,22 @@ const PALM = [0, 5, 9, 17]; // wrist and three knuckles: they stay put when the 
 const dist = (a: Point3, b: Point3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
-/** Closed when at least three fingers are curled, open when at least three are extended. Measured on the world
- *  landmarks, so it doesn't matter how the hand is turned toward the camera. */
+/** Closed on a pinch (thumb and index tips together) or when at least three fingers are curled; open when the
+ *  thumb is away from the index and either at least three fingers or the index alone are extended. The index alone
+ *  counts because many people pinch with the other three tucked, and letting go of that pinch must open the hand.
+ *  Measured on the world landmarks, so it doesn't matter how the hand is turned toward the camera. */
 export function handShape(world: readonly Point3[], cfg = HAND_CONFIG): HandShape {
-  let curled = 0, extended = 0;
-  for (const [tip, pip] of FINGERS) {
+  const pinch = dist(world[4], world[8]) / (dist(world[9], world[0]) || 1);
+  if (pinch < cfg.pinchBelow) return 'closed';
+  const apart = pinch > cfg.pinchAbove;
+  let curled = 0, extended = 0, indexExtended = false;
+  FINGERS.forEach(([tip, pip], f) => {
     const ratio = dist(world[tip], world[0]) / (dist(world[pip], world[0]) || 1);
     if (ratio < cfg.curledBelow) curled++;
-    else if (ratio > cfg.extendedAbove) extended++;
-  }
-  return curled >= 3 ? 'closed' : extended >= 3 ? 'open' : 'unsure';
+    else if (ratio > cfg.extendedAbove) { extended++; if (f === 0) indexExtended = true; }
+  });
+  if (apart && (extended >= 3 || indexExtended)) return 'open';
+  return curled >= 3 ? 'closed' : 'unsure';
 }
 
 export function palmCentre(landmarks: readonly Point3[]): { x: number; y: number } {
